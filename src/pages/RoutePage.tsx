@@ -1,0 +1,196 @@
+import { useState } from "react";
+import { toast } from "sonner";
+import { ArrowDown, ArrowUp, Brain, Crosshair, Home, PartyPopper, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CustomerCard } from "@/components/collection/CustomerCard";
+import { CompleteTaskDialog } from "@/components/collection/CompleteTaskDialog";
+import { RouteMap } from "@/components/collection/RouteMap";
+import { deleteCustomer, errorText } from "@/lib/collection/api";
+import { useCollection } from "@/lib/collection/store";
+import { km, mins, type Customer, type RouteMode } from "@/lib/collection/types";
+
+const MODES: Array<{ id: RouteMode; label: string }> = [
+  { id: "fastest", label: "⚡ 最快" },
+  { id: "shortest", label: "🛣️ 最短距离" },
+  { id: "priority", label: "⭐ 自定义优先" },
+];
+
+export default function RoutePage() {
+  const {
+    orderedOpen,
+    customers,
+    position,
+    plan,
+    planning,
+    planError,
+    planRoute,
+    mode,
+    setMode,
+    locate,
+    locating,
+    reorderManually,
+    setNextStop,
+    base,
+    refresh,
+    endDay,
+  } = useCollection();
+  const [complete, setComplete] = useState<Customer | null>(null);
+
+  const legById = new Map((plan?.legs ?? []).map((l) => [l.id, l]));
+
+  const move = async (index: number, dir: -1 | 1) => {
+    const ids = orderedOpen.map((c) => c._row_id);
+    const target = index + dir;
+    if (target < 0 || target >= ids.length) return;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    await reorderManually(ids);
+  };
+
+  const remove = async (c: Customer) => {
+    try {
+      await deleteCustomer(c._row_id);
+      await refresh();
+      toast.success(`已删除 ${c.name}`);
+    } catch (e) {
+      toast.error(errorText(e));
+    }
+  };
+
+  return (
+    <div className="min-h-screen">
+      <header className="bg-slate-900 px-4 pb-4 pt-8 text-white">
+        <h1 className="text-xl font-bold">今日路线</h1>
+        <p className="mt-1 text-sm text-slate-300">
+          {plan
+            ? `总距离 ${km(plan.total_distance_m)} · 预计驾驶 ${mins(plan.total_duration_s)}${plan.manual ? " · 路线已手动调整" : ""}`
+            : "尚未规划路线"}
+        </p>
+        <div className="mt-3 flex gap-2">
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setMode(m.id)}
+              className={`flex-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
+                mode === m.id ? "bg-sky-500 text-white" : "bg-white/10 text-slate-300"
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <div className="px-4 pt-4">
+        <RouteMap
+          customers={customers}
+          position={position}
+          nextId={orderedOpen[0]?._row_id}
+          base={base}
+          orderedIds={orderedOpen.map((c) => c._row_id)}
+          height={280}
+          onSelect={() => undefined}
+        />
+      </div>
+
+      <div className="space-y-2 px-4 pt-4">
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" className="h-12" onClick={() => void locate()} disabled={locating}>
+            <Crosshair className="mr-1 h-4 w-4" />
+            {locating ? "定位中…" : "更新位置"}
+          </Button>
+          <Button className="h-12 bg-slate-900 text-white hover:bg-slate-800" onClick={() => void planRoute()} disabled={planning}>
+            <Brain className="mr-1 h-4 w-4" />
+            {planning ? "计算中…" : "智能规划"}
+          </Button>
+        </div>
+        {plan?.manual && (
+          <Button variant="ghost" className="h-11 w-full text-slate-600" onClick={() => void planRoute()}>
+            <RotateCcw className="mr-1 h-4 w-4" />
+            恢复智能路线
+          </Button>
+        )}
+        {orderedOpen.length === 0 && customers.length > 0 && (
+          <Button variant="outline" className="h-12 w-full" onClick={() => void endDay()}>
+            <PartyPopper className="mr-1 h-4 w-4" />
+            今日收工，重置任务
+          </Button>
+        )}
+        {planError && (
+          <div className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
+            {planError}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3 px-4 py-4">
+        {orderedOpen.length === 0 && (
+          <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500">
+            没有待处理客户。
+          </p>
+        )}
+        {orderedOpen.map((c, i) => {
+          const leg = legById.get(c._row_id);
+          return (
+            <div key={c._row_id} className="space-y-1">
+              <CustomerCard
+                customer={c}
+                index={i + 1}
+                legText={leg ? `${km(leg.distance_m)} · 约 ${mins(leg.duration_s)}` : undefined}
+                onComplete={setComplete}
+                onSetNext={(x) => void setNextStop(x._row_id)}
+                onDelete={(x) => void remove(x)}
+              />
+              <div className="flex justify-end gap-1">
+                <Button variant="ghost" size="sm" onClick={() => void move(i, -1)} disabled={i === 0}>
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void move(i, 1)}
+                  disabled={i === orderedOpen.length - 1}
+                >
+                  <ArrowDown className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+        {base && plan?.return_leg && (
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm text-white">
+                <Home className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-bold text-slate-900">返回大本营</h3>
+                <p className="mt-0.5 text-sm text-slate-500">{base.address}</p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {km(plan.return_leg.distance_m)} · 约 {mins(plan.return_leg.duration_s)}
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-2 h-11 w-full"
+                  onClick={() =>
+                    window.open(
+                      `https://www.google.com/maps/dir/?api=1&destination=${base.lat},${base.lng}&travelmode=driving`,
+                      "_blank",
+                    )
+                  }
+                >
+                  导航回大本营
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <CompleteTaskDialog
+        customer={complete}
+        open={complete !== null}
+        onOpenChange={(v) => !v && setComplete(null)}
+      />
+    </div>
+  );
+}
