@@ -104,7 +104,7 @@ export default function HistoryPage() {
           {history.length > 0 && (
             <Button
               size="sm"
-              variant="secondary"
+              variant="destructive"
               onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
             >
               {selectMode ? "退出多选" : "多选"}

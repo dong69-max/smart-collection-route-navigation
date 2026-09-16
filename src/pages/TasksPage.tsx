@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Plus, Search, Trash2, X } from "lucide-react";
+import { Camera, Check, ChevronDown, Plus, Search, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CustomerCard } from "@/components/collection/CustomerCard";
 import { CompleteTaskDialog } from "@/components/collection/CompleteTaskDialog";
 import { CustomerFormDialog } from "@/components/collection/CustomerFormDialog";
+import { ImportDialog } from "@/components/collection/ImportDialog";
+import { LetterScanDialog } from "@/components/collection/LetterScanDialog";
 import { useCollection } from "@/lib/collection/store";
 import { deleteCustomer, errorText } from "@/lib/collection/api";
 import { isOpen, money, type Customer, type TaskStatus } from "@/lib/collection/types";
@@ -37,6 +45,8 @@ export default function TasksPage() {
   const [q, setQ] = useState("");
   const [complete, setComplete] = useState<Customer | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   // 多选批量删除
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -133,17 +143,36 @@ export default function TasksPage() {
             {active.length > 0 && (
               <Button
                 size="sm"
-                variant="secondary"
+                variant="destructive"
                 onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
               >
                 {selectMode ? "退出多选" : "多选"}
               </Button>
             )}
             {!selectMode && (
-              <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)}>
-                <Plus className="mr-1 h-4 w-4" />
-                添加
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="secondary">
+                    <Plus className="mr-1 h-4 w-4" />
+                    添加
+                    <ChevronDown className="ml-0.5 h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setAddOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    手动添加客户
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setImportOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    批量导入（Excel）
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setScanOpen(true)}>
+                    <Camera className="mr-2 h-4 w-4" />
+                    拍照添加（信件）
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>
@@ -341,6 +370,8 @@ export default function TasksPage() {
       </AlertDialog>
 
       <CustomerFormDialog open={addOpen} onOpenChange={setAddOpen} />
+      <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
+      <LetterScanDialog open={scanOpen} onOpenChange={setScanOpen} />
       <CompleteTaskDialog
         customer={complete}
         open={complete !== null}
