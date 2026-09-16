@@ -178,6 +178,8 @@ export interface Zone {
   lng: number | null;
   // 包含地区清单（逗号分隔）：地址里出现这些地名就直接归入该区
   keywords?: string | null;
+  // 边界多边形（[[lat,lng],...]）：客户坐标落在里面就归入该区
+  polygon?: string | null;
 }
 
 // 区的有效半径：离最近的区中心超过这个距离则不归入任何区
@@ -188,6 +190,38 @@ export function zoneKeywords(z: Zone): string[] {
     .split(/[,，、\n]/)
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
+}
+
+export function zonePolygon(z: Zone): Array<[number, number]> {
+  const raw = (z.polygon ?? "").trim();
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw) as Array<[number, number]>;
+    return Array.isArray(arr) && arr.every((p) => Array.isArray(p) && typeof p[0] === "number" && typeof p[1] === "number")
+      ? arr
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+// 射线法：判断坐标是否落在多边形边界内
+export function pointInPolygon(
+  lat: number,
+  lng: number,
+  poly: ReadonlyArray<readonly [number, number]>,
+): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const yi = poly[i][0];
+    const xi = poly[i][1];
+    const yj = poly[j][0];
+    const xj = poly[j][1];
+    if ((xi > lng) !== (xj > lng) && lat < ((yj - yi) * (lng - xi)) / (xj - xi) + yi) {
+      inside = !inside;
+    }
+  }
+  return inside;
 }
 
 // 地址对号：地址里包含区清单中的地名就归入该区（更具体/更长的地名赢）
@@ -206,7 +240,10 @@ export function matchZoneByAddress(zones: Zone[], address: string): Zone | null 
   return best;
 }
 
-// 自动分区：先按地址里的地名对号，对不上再按坐标归入最近的区（ZONE_MAX_KM 内）
+// 自动分区（客户地址 → 定位经纬度 → 区域边界多边形 → 自动归区）：
+// ① 坐标落在哪个区的边界内就归哪个区（同时落在多个区时取区中心最近的）
+// ② 不在任何边界内时按地址里的地名对号
+// ③ 再不行按坐标归最近的区中心（ZONE_MAX_KM 内）
 export function assignZone(
   zones: Zone[],
   address: string,
@@ -214,6 +251,24 @@ export function assignZone(
   lng: number,
   maxKm: number = ZONE_MAX_KM,
 ): Zone | null {
+  const containing = zones.filter((z) => {
+    const p = zonePolygon(z);
+    return p.length >= 3 && pointInPolygon(lat, lng, p);
+  });
+  if (containing.length > 0) {
+    if (containing.length === 1) return containing[0];
+    let best = containing[0];
+    let bestD = Infinity;
+    for (const z of containing) {
+      if (z.lat == null || z.lng == null) continue;
+      const d = haversineKm({ lat, lng }, { lat: z.lat, lng: z.lng });
+      if (d < bestD) {
+        bestD = d;
+        best = z;
+      }
+    }
+    return best;
+  }
   return matchZoneByAddress(zones, address) ?? nearestZone(zones, lat, lng, maxKm);
 }
 

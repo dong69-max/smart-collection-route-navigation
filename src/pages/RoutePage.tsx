@@ -7,7 +7,7 @@ import { CompleteTaskDialog } from "@/components/collection/CompleteTaskDialog";
 import { RouteMap } from "@/components/collection/RouteMap";
 import { deleteCustomer, errorText } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
-import { km, mins, displaySeq, type Customer, type RouteMode } from "@/lib/collection/types";
+import { km, mins, displaySeq, zonePolygon, type Customer, type RouteMode } from "@/lib/collection/types";
 
 const MODES: Array<{ id: RouteMode; label: string }> = [
   { id: "fastest", label: "⚡ 最快" },
@@ -136,6 +136,9 @@ export default function RoutePage() {
           nextId={visible[0]?._row_id}
           base={base}
           orderedIds={visible.map((c) => c._row_id)}
+          zoneOverlays={zones
+            .map((z) => ({ name: z.name, poly: zonePolygon(z) }))
+            .filter((o) => o.poly.length >= 3)}
           height={280}
           onSelect={() => undefined}
         />

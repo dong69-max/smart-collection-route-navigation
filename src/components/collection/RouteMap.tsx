@@ -3,6 +3,8 @@ import L from "leaflet";
 import type { Base } from "./BaseDialog";
 import { displaySeq, type Coords, type Customer } from "@/lib/collection/types";
 
+const ZONE_COLORS = ["#0284c7", "#7c3aed", "#059669", "#d97706", "#dc2626", "#db2777", "#0891b2"];
+
 function pinIcon(color: string, label: string, star: boolean) {
   return L.divIcon({
     className: "",
@@ -19,6 +21,7 @@ export function RouteMap({
   onSelect,
   base,
   orderedIds,
+  zoneOverlays,
   height = 320,
 }: {
   customers: Customer[];
@@ -27,6 +30,7 @@ export function RouteMap({
   onSelect?: (c: Customer) => void;
   base?: Base | null;
   orderedIds?: number[];
+  zoneOverlays?: Array<{ name: string; poly: Array<[number, number]> }>;
   height?: number;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -61,6 +65,21 @@ export function RouteMap({
     if (!map || !layer) return;
     layer.clearLayers();
     const bounds: L.LatLngExpression[] = [];
+
+    // 各区边界（淡色多边形，只是示意，不参与缩放范围）
+    (zoneOverlays ?? []).forEach((zo, i) => {
+      if (zo.poly.length >= 3) {
+        L.polygon(zo.poly, {
+          color: ZONE_COLORS[i % ZONE_COLORS.length],
+          weight: 1.5,
+          opacity: 0.5,
+          fillOpacity: 0.05,
+          dashArray: "4 6",
+        })
+          .bindTooltip(`📍 ${zo.name}`)
+          .addTo(layer);
+      }
+    });
 
     if (position) {
       L.marker([position.lat, position.lng], {
@@ -122,7 +141,7 @@ export function RouteMap({
       map.fitBounds(L.latLngBounds(bounds).pad(0.25), { maxZoom: 15 });
     }
     setTimeout(() => map.invalidateSize(), 120);
-  }, [base, points, position, nextId, onSelect, orderedIds]);
+  }, [base, points, position, nextId, onSelect, orderedIds, zoneOverlays]);
 
   // zIndex: 0 建立独立图层上下文：地图内部的瓦片/标记/缩放按钮
   // （内部层级可到 1000）都被限制在地图区域内，弹窗永远显示在地图之上。

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { MapPin, Pencil, Trash2 } from "lucide-react";
+import { Hexagon, MapPin, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,7 +31,8 @@ import {
   updateZone,
 } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
-import { ZONE_MAX_KM, zoneKeywords, type Zone } from "@/lib/collection/types";
+import { ZONE_MAX_KM, zoneKeywords, zonePolygon, type Zone } from "@/lib/collection/types";
+import { ZonePolygonEditor } from "./ZonePolygonEditor";
 
 export function ZoneDialog({
   open,
@@ -49,6 +50,8 @@ export function ZoneDialog({
   const [editing, setEditing] = useState<Zone | null>(null);
   const [editKw, setEditKw] = useState("");
   const [savingKw, setSavingKw] = useState(false);
+  const [editingPoly, setEditingPoly] = useState<Zone | null>(null);
+  const [savingPoly, setSavingPoly] = useState(false);
 
   const countOf = (zoneId: number) =>
     customers.filter((c) => c.zone_id === zoneId).length;
@@ -105,6 +108,7 @@ export function ZoneDialog({
   };
 
   const startEdit = (z: Zone) => {
+    setEditingPoly(null);
     setEditing(z);
     setEditKw(z.keywords ?? "");
   };
@@ -125,6 +129,26 @@ export function ZoneDialog({
     }
   };
 
+  const startEditPoly = (z: Zone) => {
+    setEditing(null);
+    setEditingPoly(z);
+  };
+
+  const savePoly = async (z: Zone, polygonJson: string) => {
+    setSavingPoly(true);
+    try {
+      await updateZone(z._row_id, { polygon: polygonJson });
+      await reloadZones();
+      await reclassifyAll();
+      toast.success(`「${z.name}」的边界已更新，客户已按新边界重新分区`);
+      setEditingPoly(null);
+    } catch (e) {
+      toast.error(errorText(e));
+    } finally {
+      setSavingPoly(false);
+    }
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -132,8 +156,8 @@ export function ZoneDialog({
           <DialogHeader>
             <DialogTitle>分区管理</DialogTitle>
             <DialogDescription>
-              客户先按地址里的地名对号入区（如地址含 Taman Molek 归东区），
-              对不上再按坐标归入最近的区中心（{ZONE_MAX_KM}km 内）。
+              客户地址定位成坐标后，坐标落在哪个区的边界内就归哪个区；
+              不在任何边界内时按地址地名对号，再按最近区中心（{ZONE_MAX_KM}km 内）兜底。
             </DialogDescription>
           </DialogHeader>
 
@@ -142,11 +166,9 @@ export function ZoneDialog({
               <ul className="space-y-2">
                 {zones.map((z) => {
                   const kws = zoneKeywords(z);
+                  const poly = zonePolygon(z);
                   return (
-                    <li
-                      key={z._row_id}
-                      className="rounded-lg border border-slate-200 p-3"
-                    >
+                    <li key={z._row_id} className="rounded-lg border border-slate-200 p-3">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex min-w-0 items-center gap-2">
                           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
@@ -156,10 +178,22 @@ export function ZoneDialog({
                             <p className="text-sm font-semibold">
                               {z.name} · {countOf(z._row_id)} 位客户
                             </p>
-                            <p className="truncate text-xs text-slate-500">{z.address}</p>
+                            <p className="truncate text-xs text-slate-500">
+                              边界：{poly.length >= 3 ? `${poly.length} 边形` : "未画（用地名/最近中心）"}
+                            </p>
                           </div>
                         </div>
                         <div className="flex shrink-0 gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              editingPoly?._row_id === z._row_id ? setEditingPoly(null) : startEditPoly(z)
+                            }
+                            aria-label={`编辑${z.name}边界`}
+                          >
+                            <Hexagon className="h-4 w-4 text-sky-600" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -180,6 +214,14 @@ export function ZoneDialog({
                           </Button>
                         </div>
                       </div>
+                      {editingPoly?._row_id === z._row_id && (
+                        <ZonePolygonEditor
+                          zone={z}
+                          saving={savingPoly}
+                          onCancel={() => setEditingPoly(null)}
+                          onSave={(json) => void savePoly(z, json)}
+                        />
+                      )}
                       {editing?._row_id === z._row_id ? (
                         <div className="mt-2 space-y-2 border-t border-slate-100 pt-2">
                           <Label htmlFor={`kw-${z._row_id}`}>
@@ -202,6 +244,7 @@ export function ZoneDialog({
                           </div>
                         </div>
                       ) : (
+                        editingPoly?._row_id !== z._row_id &&
                         kws.length > 0 && (
                           <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
                             包含：{kws.join("、")}
@@ -257,7 +300,7 @@ export function ZoneDialog({
 
             {zones.length > 0 && (
               <Button variant="outline" className="h-12 w-full" onClick={() => void reclassifyAll()}>
-                重新自动分区（地址改动后使用）
+                重新自动分区（按边界/地址重新归类）
               </Button>
             )}
           </div>

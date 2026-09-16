@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { assignZone, displaySeq, haversineKm, isOpen, km, matchZoneByAddress, mins, money, nearestZone, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers, zoneKeywords } from "./types";
+import { assignZone, displaySeq, haversineKm, isOpen, km, matchZoneByAddress, mins, money, nearestZone, pointInPolygon, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers, zoneKeywords, zonePolygon } from "./types";
 import type { Customer, Zone } from "./types";
 
 function make(partial: Partial<Customer>): Customer {
@@ -201,6 +201,55 @@ describe("按地址地名分区", () => {
   it("地址地名优先于坐标距离", () => {
     // 坐标在北区中心，但地址写着 Taman Molek → 应归东区
     expect(assignZone(zones, "Taman Molek, Johor Bahru", 1.601, 103.645)?.name).toBe("东区");
+  });
+});
+
+// @kliv-spec-derived — 用户要求：客户地址 → 定位经纬度 → 区域边界多边形 → 自动归区
+// 边界优先于地名；不在任何边界内才退回地名/最近中心
+describe("边界多边形分区", () => {
+  const poly: Array<[number, number]> = [
+    [1.5, 103.7],
+    [1.5, 103.8],
+    [1.55, 103.8],
+    [1.55, 103.7],
+  ];
+
+  it("点在多边形内/外判断正确", () => {
+    expect(pointInPolygon(1.52, 103.75, poly)).toBe(true);
+    expect(pointInPolygon(1.6, 103.75, poly)).toBe(false);
+    expect(pointInPolygon(1.52, 103.85, poly)).toBe(false);
+  });
+
+  it("zonePolygon 能解析边界，格式坏时返回空", () => {
+    expect(zonePolygon({ _row_id: 1, name: "x", address: "", lat: null, lng: null, polygon: JSON.stringify(poly) })).toEqual(poly);
+    expect(zonePolygon({ _row_id: 2, name: "x", address: "", lat: null, lng: null, polygon: "不是json" })).toEqual([]);
+    expect(zonePolygon({ _row_id: 3, name: "x", address: "", lat: null, lng: null })).toEqual([]);
+  });
+
+  it("坐标落在边界内就归这个区，优先于地址地名", () => {
+    const zs: Zone[] = [
+      { _row_id: 1, name: "边界区", address: "", lat: 1.52, lng: 103.75, polygon: JSON.stringify(poly) },
+      { _row_id: 2, name: "地名区", address: "", lat: 1.6, lng: 103.9, keywords: "Senai" },
+    ];
+    // 坐标在边界区内，即使地址写着别区的地名，也归边界区
+    expect(assignZone(zs, "Senai Business Park", 1.52, 103.75)?.name).toBe("边界区");
+  });
+
+  it("同时落在两个区的边界内时取区中心最近的", () => {
+    const zs: Zone[] = [
+      { _row_id: 1, name: "甲区", address: "", lat: 1.51, lng: 103.75, polygon: JSON.stringify(poly) },
+      { _row_id: 2, name: "乙区", address: "", lat: 1.54, lng: 103.75, polygon: JSON.stringify(poly) },
+    ];
+    expect(assignZone(zs, "某地址", 1.525, 103.75)?.name).toBe("甲区");
+    expect(assignZone(zs, "某地址", 1.535, 103.75)?.name).toBe("乙区");
+  });
+
+  it("不在任何边界内时退回地名对号", () => {
+    const zs: Zone[] = [
+      { _row_id: 1, name: "边界区", address: "", lat: 1.52, lng: 103.75, polygon: JSON.stringify(poly) },
+      { _row_id: 2, name: "地名区", address: "", lat: 1.6, lng: 103.9, keywords: "Senai" },
+    ];
+    expect(assignZone(zs, "Senai Business Park", 1.6, 103.9)?.name).toBe("地名区");
   });
 });
 
