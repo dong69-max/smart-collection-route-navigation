@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import type { Base } from "./BaseDialog";
-import type { Coords, Customer } from "@/lib/collection/types";
+import { displaySeq, type Coords, type Customer } from "@/lib/collection/types";
 
 function pinIcon(color: string, label: string, star: boolean) {
   return L.divIcon({
@@ -37,13 +37,6 @@ export function RouteMap({
     () => customers.filter((c) => c.lat != null && c.lng != null),
     [customers],
   );
-
-  // 拜访顺序：优先用当前规划（从实时定位/大本营出发算出的顺序）
-  const seqById = useMemo(() => {
-    const m = new Map<number, number>();
-    (orderedIds ?? []).forEach((id, i) => m.set(id, i + 1));
-    return m;
-  }, [orderedIds]);
 
   useEffect(() => {
     if (!ref.current || mapRef.current) return;
@@ -91,8 +84,9 @@ export function RouteMap({
       const done = !["pending", "in_progress"].includes(c.status);
       const isNext = c._row_id === nextId;
       const color = done ? "#16a34a" : isNext ? "#0ea5e9" : c.priority === 1 ? "#f59e0b" : "#dc2626";
-      // 编号：当前规划顺序优先；已完成客户用保留的原拜访序号；都没有则已完成显示 ✓
-      const seq = seqById.get(c._row_id) ?? c.route_order ?? null;
+      // 编号固定不变：规划时写下的 route_order 就是终身号码，
+      // 完成任务后它保持原号，其他人也不重编
+      const seq = displaySeq(c, i + 1);
       const label = seq != null ? String(seq) : done ? "✓" : String(i + 1);
       const m = L.marker([c.lat as number, c.lng as number], {
         icon: pinIcon(color, label, c.priority === 1 && !done),
@@ -128,7 +122,7 @@ export function RouteMap({
       map.fitBounds(L.latLngBounds(bounds).pad(0.25), { maxZoom: 15 });
     }
     setTimeout(() => map.invalidateSize(), 120);
-  }, [base, points, position, nextId, onSelect, seqById, orderedIds]);
+  }, [base, points, position, nextId, onSelect, orderedIds]);
 
   // zIndex: 0 建立独立图层上下文：地图内部的瓦片/标记/缩放按钮
   // （内部层级可到 1000）都被限制在地图区域内，弹窗永远显示在地图之上。

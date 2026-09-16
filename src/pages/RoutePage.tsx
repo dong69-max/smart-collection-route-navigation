@@ -7,7 +7,7 @@ import { CompleteTaskDialog } from "@/components/collection/CompleteTaskDialog";
 import { RouteMap } from "@/components/collection/RouteMap";
 import { deleteCustomer, errorText } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
-import { km, mins, type Customer, type RouteMode } from "@/lib/collection/types";
+import { km, mins, displaySeq, type Customer, type RouteMode } from "@/lib/collection/types";
 
 const MODES: Array<{ id: RouteMode; label: string }> = [
   { id: "fastest", label: "⚡ 最快" },
@@ -183,7 +183,7 @@ export default function RoutePage() {
             <div key={c._row_id} className="space-y-1">
               <CustomerCard
                 customer={c}
-                index={i + 1}
+                index={displaySeq(c, i + 1) ?? undefined}
                 legText={leg ? `${km(leg.distance_m)} · 约 ${mins(leg.duration_s)}` : undefined}
                 zoneName={c.zone_id != null ? zones.find((z) => z._row_id === c.zone_id)?.name ?? null : null}
                 onComplete={setComplete}

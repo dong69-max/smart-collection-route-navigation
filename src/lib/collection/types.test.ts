@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { haversineKm, isOpen, km, mins, money, nearestZone, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers } from "./types";
+import { displaySeq, haversineKm, isOpen, km, mins, money, nearestZone, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers } from "./types";
 import type { Customer, Zone } from "./types";
 
 function make(partial: Partial<Customer>): Customer {
@@ -137,6 +137,23 @@ describe("自动分区", () => {
 
   it("没有区时返回 null", () => {
     expect(nearestZone([], 1.5, 103.7)).toBeNull();
+  });
+});
+
+// @kliv-spec-derived — 用户要求：1号完成任务后还是1号，2号还是2号，任何人都不重新编号
+describe("固定编号", () => {
+  it("完成后的客户保持原编号", () => {
+    expect(displaySeq(make({ status: "done", route_order: 1 }), 1)).toBe(1);
+  });
+
+  it("1号完成后，2号3号仍是2号3号，不变成1号2号", () => {
+    expect(displaySeq(make({ status: "pending", route_order: 2 }), 1)).toBe(2);
+    expect(displaySeq(make({ status: "pending", route_order: 3 }), 2)).toBe(3);
+  });
+
+  it("未规划过的待处理客户用列表位置，已完成且无编号返回 null（地图显示勾）", () => {
+    expect(displaySeq(make({ status: "pending", route_order: null }), 2)).toBe(2);
+    expect(displaySeq(make({ status: "done", route_order: null }), 2)).toBeNull();
   });
 });
 

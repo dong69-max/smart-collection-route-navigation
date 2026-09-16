@@ -90,6 +90,14 @@ export function isOpen(c: Customer) {
   return OPEN_STATUSES.includes(c.status) && c.archived !== 1;
 }
 
+// 固定编号：规划时写进客户的 route_order 就是它的终身号码。
+// 完成任务、删除别人、收工都不会改号；只有重新规划或手动调序才重新编号。
+// 还没规划过（route_order 为空）时，待处理客户用列表位置当临时编号，
+// 已完成的显示 null（地图上显示 ✓）。
+export function displaySeq(c: Customer, fallbackIndex: number): number | null {
+  return c.route_order ?? (isOpen(c) ? fallbackIndex : null);
+}
+
 export function km(m: number) {
   return `${(m / 1000).toFixed(1)} km`;
 }
