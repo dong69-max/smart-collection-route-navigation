@@ -46,6 +46,11 @@ export default function TasksPage() {
   const active = useMemo(() => customers.filter((c) => c.hidden !== 1), [customers]);
   const done = active.filter((c) => !isOpen(c)).length;
   const hasUnzoned = customers.some((c) => c.zone_id == null);
+  // 每个区有多少客户：只数今天在任务里的（不含隐藏）
+  const zoneCount = (zoneId: number | "none") =>
+    zoneId === "none"
+      ? active.filter((c) => c.zone_id == null).length
+      : active.filter((c) => c.zone_id === zoneId).length;
 
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -195,7 +200,7 @@ export default function TasksPage() {
               zoneFilter === "all" ? "border-indigo-600 bg-indigo-600 text-white" : "border-indigo-200 bg-white text-indigo-700"
             }`}
           >
-            全部地区
+            全部地区-{active.length}
           </button>
           {zones.map((z) => (
             <button
@@ -205,7 +210,7 @@ export default function TasksPage() {
                 zoneFilter === z._row_id ? "border-indigo-600 bg-indigo-600 text-white" : "border-indigo-200 bg-white text-indigo-700"
               }`}
             >
-              {z.name}
+              {z.name}-{zoneCount(z._row_id)}
             </button>
           ))}
           {hasUnzoned && (
@@ -215,7 +220,7 @@ export default function TasksPage() {
                 zoneFilter === "none" ? "border-indigo-600 bg-indigo-600 text-white" : "border-indigo-200 bg-white text-indigo-700"
               }`}
             >
-              未分区
+              未分区-{zoneCount("none")}
             </button>
           )}
         </div>

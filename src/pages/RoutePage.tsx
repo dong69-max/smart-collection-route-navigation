@@ -51,6 +51,14 @@ export default function RoutePage() {
   const zoneName =
     zoneFilter === "all" ? null : zoneFilter === "none" ? "未分区" : zones.find((z) => z._row_id === zoneFilter)?.name;
   const hasUnzoned = customers.some((c) => c.zone_id == null);
+  // 每个区还有多少待收客户（含各区剩余量，隐藏的不算）
+  const zoneOpenCount = (zoneId: number | "none") => {
+    const inZone =
+      zoneId === "none"
+        ? customers.filter((c) => c.zone_id == null)
+        : customers.filter((c) => c.zone_id === zoneId);
+    return inZone.filter((c) => c.hidden !== 1 && ["pending", "in_progress"].includes(c.status)).length;
+  };
   // 地图不显示隐藏的客户
   const mapCustomers = zoneFilter === "all" ? customers.filter((c) => c.hidden !== 1) : visible;
 
@@ -104,7 +112,7 @@ export default function RoutePage() {
                 zoneFilter === "all" ? "border-sky-400 bg-sky-500 text-white" : "border-white/30 bg-white/10 text-slate-200"
               }`}
             >
-              全部地区
+              全部地区-{customers.filter((c) => c.hidden !== 1).length}
             </button>
             {zones.map((z) => (
               <button
@@ -114,7 +122,7 @@ export default function RoutePage() {
                   zoneFilter === z._row_id ? "border-sky-400 bg-sky-500 text-white" : "border-white/30 bg-white/10 text-slate-200"
                 }`}
               >
-                {z.name}
+                {z.name}-{zoneOpenCount(z._row_id)}
               </button>
             ))}
             {hasUnzoned && (
@@ -124,7 +132,7 @@ export default function RoutePage() {
                   zoneFilter === "none" ? "border-sky-400 bg-sky-500 text-white" : "border-white/30 bg-white/10 text-slate-200"
                 }`}
               >
-                未分区
+                未分区-{zoneOpenCount("none")}
               </button>
             )}
           </div>
