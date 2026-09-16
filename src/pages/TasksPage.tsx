@@ -1,9 +1,19 @@
 import { useMemo, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { Check, Plus, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CustomerCard } from "@/components/collection/CustomerCard";
 import { CompleteTaskDialog } from "@/components/collection/CompleteTaskDialog";
 import { CustomerFormDialog } from "@/components/collection/CustomerFormDialog";
@@ -27,6 +37,10 @@ export default function TasksPage() {
   const [q, setQ] = useState("");
   const [complete, setComplete] = useState<Customer | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  // 多选批量删除
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [batchConfirm, setBatchConfirm] = useState(false);
 
   // 隐藏的客户不算在今天的任务里（进度、清单都不含）
   const active = useMemo(() => customers.filter((c) => c.hidden !== 1), [customers]);
@@ -65,15 +79,68 @@ export default function TasksPage() {
     }
   };
 
+  const listIds = list.map((c) => c._row_id);
+  const allSelected = listIds.length > 0 && listIds.every((id) => selected.has(id));
+
+  const toggle = (id: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) listIds.forEach((id) => next.delete(id));
+      else listIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelected(new Set());
+  };
+
+  const removeBatch = async () => {
+    if (selected.size === 0) return;
+    try {
+      await Promise.all([...selected].map((id) => deleteCustomer(id)));
+      await refresh();
+      toast.success(`已删除 ${selected.size} 位客户`);
+      exitSelectMode();
+    } catch (e) {
+      toast.error(`删除失败：${errorText(e)}`);
+    } finally {
+      setBatchConfirm(false);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <header className="bg-slate-900 px-4 pb-4 pt-8 text-white">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold">今日任务</h1>
-          <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)}>
-            <Plus className="mr-1 h-4 w-4" />
-            添加
-          </Button>
+          <div className="flex gap-2">
+            {active.length > 0 && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+              >
+                {selectMode ? "退出多选" : "多选"}
+              </Button>
+            )}
+            {!selectMode && (
+              <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)}>
+                <Plus className="mr-1 h-4 w-4" />
+                添加
+              </Button>
+            )}
+          </div>
         </div>
         <p className="mt-1 text-sm text-slate-300">
           完成进度 {done} / {active.length}
@@ -91,6 +158,19 @@ export default function TasksPage() {
             className="h-12 border-0 bg-white/10 pl-9 text-white placeholder:text-slate-400"
           />
         </div>
+        {selectMode && (
+          <div className="mt-3 flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 border-white/30 bg-white/10 text-white hover:bg-white/20"
+              onClick={toggleAll}
+            >
+              {allSelected ? "取消全选" : "全选本页结果"}
+            </Button>
+            <span className="text-xs text-slate-300">已选 {selected.size} 位</span>
+          </div>
+        )}
       </header>
 
       <div className="flex gap-2 overflow-x-auto px-4 py-3">
@@ -142,19 +222,50 @@ export default function TasksPage() {
       )}
 
       <div className="space-y-3 px-4 pb-6">
-        {list.length === 0 && (
+        {!selectMode && list.length === 0 && (
           <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500">没有匹配的客户。</p>
         )}
-        {list.map((c) => (
-          <CustomerCard
-            key={c._row_id}
-            customer={c}
-            zoneName={c.zone_id != null ? zones.find((z) => z._row_id === c.zone_id)?.name ?? null : null}
-            onComplete={setComplete}
-            onHide={(x) => void hideCustomer(x._row_id)}
-            onDelete={(x) => void remove(x._row_id)}
-          />
-        ))}
+        {list.map((c) =>
+          selectMode ? (
+            <div
+              key={c._row_id}
+              onClick={() => toggle(c._row_id)}
+              className={`flex cursor-pointer items-center gap-3 rounded-2xl border bg-white p-4 transition-colors ${
+                selected.has(c._row_id) ? "border-rose-400 bg-rose-50" : "border-slate-200"
+              }`}
+            >
+              <button
+                type="button"
+                aria-label={`选择 ${c.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggle(c._row_id);
+                }}
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
+                  selected.has(c._row_id)
+                    ? "border-rose-500 bg-rose-500 text-white"
+                    : "border-slate-300 bg-white"
+                }`}
+              >
+                {selected.has(c._row_id) && <Check className="h-4 w-4" />}
+              </button>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-bold text-slate-900">{c.name}</p>
+                <p className="truncate text-sm text-slate-500">{c.address}</p>
+              </div>
+              <span className="shrink-0 text-sm font-semibold text-rose-600">{money(c.amount)}</span>
+            </div>
+          ) : (
+            <CustomerCard
+              key={c._row_id}
+              customer={c}
+              zoneName={c.zone_id != null ? zones.find((z) => z._row_id === c.zone_id)?.name ?? null : null}
+              onComplete={setComplete}
+              onHide={(x) => void hideCustomer(x._row_id)}
+              onDelete={(x) => void remove(x._row_id)}
+            />
+          ),
+        )}
 
         {hiddenCustomers.length > 0 && (
           <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -182,6 +293,47 @@ export default function TasksPage() {
           </section>
         )}
       </div>
+
+      {selectMode && (
+        <div className="fixed bottom-20 left-4 right-4 z-[900] flex gap-2">
+          <Button
+            variant="outline"
+            className="h-13 flex-1 bg-white py-3.5 text-base"
+            onClick={exitSelectMode}
+          >
+            <X className="mr-1 h-4 w-4" />
+            取消
+          </Button>
+          <Button
+            className="flex-[2] bg-rose-600 py-3.5 text-base hover:bg-rose-700"
+            disabled={selected.size === 0}
+            onClick={() => setBatchConfirm(true)}
+          >
+            <Trash2 className="mr-1 h-4 w-4" />
+            删除所选（{selected.size}）
+          </Button>
+        </div>
+      )}
+
+      <AlertDialog open={batchConfirm} onOpenChange={setBatchConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>删除所选的 {selected.size} 位客户？</AlertDialogTitle>
+            <AlertDialogDescription>
+              将永久删除这 {selected.size} 位客户及其任务信息，删除后无法恢复。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700"
+              onClick={() => void removeBatch()}
+            >
+              确认删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <CustomerFormDialog open={addOpen} onOpenChange={setAddOpen} />
       <CompleteTaskDialog
