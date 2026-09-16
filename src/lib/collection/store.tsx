@@ -21,13 +21,16 @@ import {
   assignZone,
   haversineKm,
   isOpen,
+  parseTodayZone,
   restoreSavedPosition,
   syncPlanToOpenCustomers,
+  todayKey,
   type Coords,
   type Customer,
   type HistoryRow,
   type RouteMode,
   type RoutePlan,
+  type TodayZone,
   type Zone,
 } from "./types";
 
@@ -43,6 +46,7 @@ interface Ctx {
   zoneFilter: ZoneFilter;
   setZoneFilter: (z: ZoneFilter) => void;
   zoneFilteredOpen: Customer[];
+  todayZone: TodayZone | null;
   reclassifyAll: () => Promise<void>;
   loading: boolean;
   position: Coords | null;
@@ -71,6 +75,7 @@ const CollectionContext = createContext<Ctx | null>(null);
 
 const PLAN_KEY = "collection_route_plan";
 const POS_KEY = "collection_last_position";
+const TODAY_ZONE_KEY = "collection_today_zone";
 
 export function CollectionProvider({ children }: { children: ReactNode }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -87,6 +92,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
   const [base, setBase] = useState<Base | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
   const [zoneFilter, setZoneFilter] = useState<ZoneFilter>("all");
+  const [todayZone, setTodayZone] = useState<TodayZone | null>(null);
 
   const reloadZones = useCallback(async () => {
     try {
@@ -131,6 +137,12 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
       } else if (savedPos) {
         // 上次定位已过期（超过 3 小时）：丢弃，不再显示旧图钉
         localStorage.removeItem(POS_KEY);
+      }
+      const savedTz = parseTodayZone(localStorage.getItem(TODAY_ZONE_KEY), todayKey());
+      if (savedTz) {
+        // 今天的收账目标区还在：恢复它，并让路线页自动选回这个区
+        setTodayZone(savedTz);
+        setZoneFilter(savedTz.zoneId);
       }
     } catch {
       /* ignore */
@@ -289,6 +301,22 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
         createdAt: Date.now(),
       };
       persistPlan(newPlan);
+      // 记住今天的收账目标区：路线页按区规划后，首页显示「今日目标」并同步统计
+      if (zoneFilter === "all") {
+        setTodayZone(null);
+        localStorage.removeItem(TODAY_ZONE_KEY);
+      } else {
+        const tz: TodayZone = {
+          zoneId: zoneFilter as number | "none",
+          name:
+            zoneFilter === "none"
+              ? "未分区"
+              : zones.find((z) => z._row_id === zoneFilter)?.name ?? "所选区",
+          date: todayKey(),
+        };
+        setTodayZone(tz);
+        localStorage.setItem(TODAY_ZONE_KEY, JSON.stringify(tz));
+      }
       await Promise.all(
         res.legs.map((leg, i) => updateCustomer(leg.id, { route_order: i + 1 })),
       );
@@ -301,7 +329,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     } finally {
       setPlanning(false);
     }
-  }, [base, mode, zoneFilteredOpen, persistPlan, position, refresh]);
+  }, [base, mode, zoneFilteredOpen, persistPlan, position, refresh, zoneFilter, zones]);
 
   const endDay = useCallback(async () => {
     const finished = customers.filter((c) => !isOpen(c));
@@ -394,6 +422,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     zoneFilter,
     setZoneFilter,
     zoneFilteredOpen,
+    todayZone,
     reclassifyAll,
     loading,
     position,

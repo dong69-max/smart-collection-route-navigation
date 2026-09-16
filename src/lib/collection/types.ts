@@ -291,3 +291,48 @@ export function nearestZone(
   }
   return bestD <= maxKm ? best : null;
 }
+
+// ---- 今日目标区 ----
+
+export interface TodayZone {
+  zoneId: number | "none";
+  name: string;
+  date: string;
+}
+
+// 只认「今天」的今日目标：隔天自动失效
+export function parseTodayZone(raw: string | null, today: string): TodayZone | null {
+  if (!raw) return null;
+  try {
+    const t = JSON.parse(raw) as Partial<TodayZone>;
+    if (t.date !== today) return null;
+    if (t.zoneId !== "none" && typeof t.zoneId !== "number") return null;
+    if (typeof t.name !== "string" || !t.name) return null;
+    return { zoneId: t.zoneId, name: t.name, date: t.date };
+  } catch {
+    return null;
+  }
+}
+
+// ---- 地图同地点合并 ----
+
+export interface SpotGroup {
+  lat: number;
+  lng: number;
+  items: Array<{ c: Customer; idx: number }>;
+}
+
+// 同一坐标的客户合并成一组：同地址多个欠款人画在一个图钉里，
+// 编号并列显示（如 1·2），弹窗列出每个人——不再有人被叠在下面看不见
+export function groupSameSpot(points: Customer[]): SpotGroup[] {
+  const byKey = new Map<string, SpotGroup>();
+  points.forEach((c, idx) => {
+    const lat = c.lat as number;
+    const lng = c.lng as number;
+    const key = `${lat},${lng}`;
+    const g = byKey.get(key);
+    if (g) g.items.push({ c, idx });
+    else byKey.set(key, { lat, lng, items: [{ c, idx }] });
+  });
+  return [...byKey.values()];
+}

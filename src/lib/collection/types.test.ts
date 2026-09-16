@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { assignZone, displaySeq, haversineKm, isOpen, km, matchZoneByAddress, mins, money, nearestZone, pointInPolygon, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers, zoneKeywords, zonePolygon } from "./types";
+import { assignZone, displaySeq, groupSameSpot, haversineKm, isOpen, km, matchZoneByAddress, mins, money, nearestZone, parseTodayZone, pointInPolygon, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers, zoneKeywords, zonePolygon } from "./types";
 import type { Customer, Zone } from "./types";
 
 function make(partial: Partial<Customer>): Customer {
@@ -273,5 +273,49 @@ describe("上次定位还原", () => {
     const legacy = JSON.stringify({ lat: 1.5, lng: 103.7, label: "GPS" });
     expect(restoreSavedPosition(legacy, now)).toBeNull();
     expect(restoreSavedPosition(null, now)).toBeNull();
+  });
+});
+
+// @kliv-spec-derived — 用户要求：同地点两位客户（1 号被 2 号叠住）都要看得见
+ describe("同地点客户合并", () => {
+  it("同坐标的客户合为一组，编号并列显示", () => {
+    const a = make({ _row_id: 1, name: "A", route_order: 1, lat: 1.5, lng: 103.7 });
+    const b = make({ _row_id: 2, name: "B", route_order: 2, lat: 1.5, lng: 103.7 });
+    const g = groupSameSpot([a, b]);
+    expect(g).toHaveLength(1);
+    expect(g[0].items).toHaveLength(2);
+    expect(g[0].items.map((x) => x.c.name)).toEqual(["A", "B"]);
+  });
+
+  it("不同坐标的客户各自成组，顺序保留", () => {
+    const a = make({ _row_id: 1, lat: 1.5, lng: 103.7 });
+    const b = make({ _row_id: 2, lat: 1.52, lng: 103.75 });
+    const g = groupSameSpot([a, b]);
+    expect(g).toHaveLength(2);
+    expect(g[0].items[0].idx).toBe(0);
+    expect(g[1].items[0].idx).toBe(1);
+  });
+});
+
+// @kliv-spec-derived — 用户要求：路线页按区智能规划后，首页要显示今日目标（如西区）
+ describe("今日目标区", () => {
+  const raw = JSON.stringify({ zoneId: 2, name: "西区", date: "2026-09-16" });
+
+  it("今天的今日目标可以解析", () => {
+    const t = parseTodayZone(raw, "2026-09-16");
+    expect(t?.name).toBe("西区");
+    expect(t?.zoneId).toBe(2);
+  });
+
+  it("未分区也可以是今日目标", () => {
+    const t = parseTodayZone(JSON.stringify({ zoneId: "none", name: "未分区", date: "2026-09-16" }), "2026-09-16");
+    expect(t?.zoneId).toBe("none");
+  });
+
+  it("隔天的今日目标自动失效，坏数据也不还原", () => {
+    expect(parseTodayZone(raw, "2026-09-17")).toBeNull();
+    expect(parseTodayZone(null, "2026-09-16")).toBeNull();
+    expect(parseTodayZone("坏json", "2026-09-16")).toBeNull();
+    expect(parseTodayZone(JSON.stringify({ zoneId: 2, name: "西区", date: "2026-09-16", extra: 1 }), "2026-09-16")?.name).toBe("西区");
   });
 });

@@ -45,6 +45,7 @@ export default function Index() {
     planError,
     planRoute,
     nearby,
+    todayZone,
     orderedOpen,
     base,
     reloadBase,
@@ -60,11 +61,17 @@ export default function Index() {
   const [endDayOpen, setEndDayOpen] = useState(false);
   const [manual, setManual] = useState("");
 
-  const total = customers.length;
-  const openCount = customers.filter(isOpen).length;
+  // 定了今日目标区后，首页统计只看这个区（比如今天专收西区）
+  const scoped = todayZone
+    ? customers.filter((c) =>
+        todayZone.zoneId === "none" ? c.zone_id == null : c.zone_id === todayZone.zoneId,
+      )
+    : customers;
+  const total = scoped.length;
+  const openCount = scoped.filter(isOpen).length;
   const doneCount = total - openCount;
-  const collected = customers.reduce((a, c) => a + (c.collected_amount ?? 0), 0);
-  const outstanding = customers.filter(isOpen).reduce((a, c) => a + c.amount, 0);
+  const collected = scoped.reduce((a, c) => a + (c.collected_amount ?? 0), 0);
+  const outstanding = scoped.filter(isOpen).reduce((a, c) => a + c.amount, 0);
   const progress = total === 0 ? 0 : Math.round((doneCount / total) * 100);
   const returnText = base && plan?.return_leg
     ? `返回大本营：${km(plan.return_leg.distance_m)} · 约 ${mins(plan.return_leg.duration_s)}`
@@ -87,9 +94,15 @@ export default function Index() {
             🏠 大本营：{base.address}
           </button>
         )}
+        {todayZone && (
+          <div className="mt-3 flex items-center justify-between rounded-2xl bg-white/15 px-3 py-2">
+            <p className="text-sm font-bold">🎯 今日目标：{todayZone.name}</p>
+            <p className="text-xs text-sky-100">剩余 {openCount} 家</p>
+          </div>
+        )}
 
         <div className="mt-4 grid grid-cols-3 gap-2">
-          <Stat label="今日任务" value={`${total}`} />
+          <Stat label={todayZone ? `今日任务·${todayZone.name}` : "今日任务"} value={`${total}`} />
           <Stat label="已完成" value={`${doneCount}`} tone="text-emerald-200" />
           <Stat label="剩余" value={`${openCount}`} tone="text-amber-200" />
         </div>
