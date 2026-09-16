@@ -35,7 +35,7 @@ export function CompleteTaskDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { position, refresh, planRoute } = useCollection();
+  const { position, refresh } = useCollection();
   const [result, setResult] = useState<TaskStatus>("done");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -69,7 +69,7 @@ export function CompleteTaskDialog({
         notes: notes || customer.notes,
         completed_at: Math.floor(Date.now() / 1000),
         pinned_next: 0,
-        route_order: null,
+        // 保留 route_order：已完成客户的地图标记继续显示原拜访序号
       });
       await insertHistory({
         customer_id: customer._row_id,
@@ -86,8 +86,7 @@ export function CompleteTaskDialog({
       setAmount("");
       setNotes("");
       setResult("done");
-      toast.success("已完成并保存记录");
-      if (position) void planRoute();
+      toast.success("已完成，剩余站点保持原顺序");
     } catch (e) {
       toast.error(`保存失败：${errorText(e)}`);
     } finally {

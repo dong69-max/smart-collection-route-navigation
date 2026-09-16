@@ -91,12 +91,14 @@ export function RouteMap({
       const done = !["pending", "in_progress"].includes(c.status);
       const isNext = c._row_id === nextId;
       const color = done ? "#16a34a" : isNext ? "#0ea5e9" : c.priority === 1 ? "#f59e0b" : "#dc2626";
-      const seq = seqById.get(c._row_id) ?? c.route_order ?? i + 1;
+      // 编号：当前规划顺序优先；已完成客户用保留的原拜访序号；都没有则已完成显示 ✓
+      const seq = seqById.get(c._row_id) ?? c.route_order ?? null;
+      const label = seq != null ? String(seq) : done ? "✓" : String(i + 1);
       const m = L.marker([c.lat as number, c.lng as number], {
-        icon: pinIcon(color, String(seq), c.priority === 1 && !done),
+        icon: pinIcon(color, label, c.priority === 1 && !done),
       }).addTo(layer);
       m.bindPopup(
-        `<div style="font-size:13px"><b>第 ${seq} 站 · ${c.name}</b><br/>${c.address}<br/>欠款 RM ${c.amount}</div>`,
+        `<div style="font-size:13px"><b>${seq != null ? `第 ${seq} 站 · ` : ""}${done ? "✅ " : ""}${c.name}</b><br/>${c.address}<br/>欠款 RM ${c.amount}</div>`,
       );
       if (onSelect) m.on("click", () => onSelect(c));
       bounds.push([c.lat as number, c.lng as number]);
