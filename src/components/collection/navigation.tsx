@@ -6,9 +6,15 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import type { Customer } from "@/lib/collection/types";
+// 导航目标：客户或大本营都满足这个形状
+export interface NavTarget {
+  name: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+}
 
-export function openGoogleMaps(c: Customer) {
+export function openGoogleMaps(c: NavTarget) {
   const dest =
     c.lat != null && c.lng != null ? `${c.lat},${c.lng}` : encodeURIComponent(c.address);
   window.open(
@@ -17,7 +23,7 @@ export function openGoogleMaps(c: Customer) {
   );
 }
 
-export function openWaze(c: Customer) {
+export function openWaze(c: NavTarget) {
   const dest =
     c.lat != null && c.lng != null ? `ll=${c.lat},${c.lng}` : `q=${encodeURIComponent(c.address)}`;
   window.open(`https://waze.com/ul?${dest}&navigate=yes`, "_blank");
@@ -28,7 +34,7 @@ export function NavigationChooserDialog({
   open,
   onOpenChange,
 }: {
-  customer: Customer | null;
+  customer: NavTarget | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {

@@ -57,6 +57,7 @@ export default function Index() {
   const [complete, setComplete] = useState<Customer | null>(null);
   const [navCustomer, setNavCustomer] = useState<Customer | null>(null);
   const [baseOpen, setBaseOpen] = useState(false);
+  const [navBaseOpen, setNavBaseOpen] = useState(false);
   const [zoneOpen, setZoneOpen] = useState(false);
   const [endDayOpen, setEndDayOpen] = useState(false);
   const [manual, setManual] = useState("");
@@ -90,8 +91,11 @@ export default function Index() {
           <span className="truncate">{positionLabel}</span>
         </p>
         {base && (
-          <button onClick={() => setBaseOpen(true)} className="mt-1 text-xs text-sky-100 underline underline-offset-2">
-            🏠 大本营：{base.address}
+          <button
+            onClick={() => setNavBaseOpen(true)}
+            className="mt-1 flex items-center gap-1 text-left text-xs font-semibold text-sky-50 underline underline-offset-2"
+          >
+            🏠 导航到大本营：{base.address}
           </button>
         )}
         {todayZone && (
@@ -275,6 +279,11 @@ export default function Index() {
         onOpenChange={(v) => !v && setNavCustomer(null)}
       />
       <BaseDialog open={baseOpen} onOpenChange={setBaseOpen} onSaved={() => void reloadBase()} />
+      <NavigationChooserDialog
+        customer={base ? { name: "大本营", address: base.address, lat: base.lat, lng: base.lng } : null}
+        open={navBaseOpen}
+        onOpenChange={setNavBaseOpen}
+      />
       <ZoneDialog open={zoneOpen} onOpenChange={setZoneOpen} />
       <AlertDialog open={endDayOpen} onOpenChange={setEndDayOpen}>
         <AlertDialogContent>

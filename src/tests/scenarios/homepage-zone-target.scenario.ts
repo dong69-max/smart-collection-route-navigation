@@ -104,5 +104,11 @@ scenario(
       await expect(page.getByText(/今日目标：西区/)).toBeVisible();
       await expect(page.getByText("今日任务·西区")).toBeVisible();
     });
+
+    await step("点大本营按钮弹出导航选择", async () => {
+      await page.getByRole("button", { name: /导航到大本营/ }).click();
+      await expect(page.getByRole("button", { name: "🚗 Waze" })).toBeVisible();
+      await expect(page.getByText(/大本营 · Jalan Skudai 10/)).toBeVisible();
+    });
   },
 );
