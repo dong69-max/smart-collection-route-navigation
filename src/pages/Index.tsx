@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Brain, Crosshair, MapPin, PartyPopper, Plus, Upload, AlertTriangle } from "lucide-react";
+import { Brain, Camera, Crosshair, MapPin, PartyPopper, Plus, Upload, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -20,6 +20,7 @@ import { CompleteTaskDialog } from "@/components/collection/CompleteTaskDialog";
 import { NavigationChooserDialog } from "@/components/collection/navigation";
 import { BaseDialog } from "@/components/collection/BaseDialog";
 import { ZoneDialog } from "@/components/collection/ZoneDialog";
+import { LetterScanDialog } from "@/components/collection/LetterScanDialog";
 import { useCollection } from "@/lib/collection/store";
 import { isOpen, km, mins, money, type Customer } from "@/lib/collection/types";
 
@@ -53,6 +54,7 @@ export default function Index() {
   } = useCollection();
   const navigate = useNavigate();
   const [addOpen, setAddOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [complete, setComplete] = useState<Customer | null>(null);
   const [navCustomer, setNavCustomer] = useState<Customer | null>(null);
@@ -185,15 +187,19 @@ export default function Index() {
         )}
 
         <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" className="h-12" onClick={() => setScanOpen(true)}>
+            <Camera className="mr-1 h-5 w-5" />
+            拍照添加
+          </Button>
           <Button variant="outline" className="h-12" onClick={() => setAddOpen(true)}>
             <Plus className="mr-1 h-5 w-5" />
             添加客户
           </Button>
-          <Button variant="outline" className="h-12" onClick={() => setImportOpen(true)}>
-            <Upload className="mr-1 h-5 w-5" />
-            批量导入
-          </Button>
         </div>
+        <Button variant="outline" className="h-12 w-full" onClick={() => setImportOpen(true)}>
+          <Upload className="mr-1 h-5 w-5" />
+          批量导入（Excel）
+        </Button>
 
         <Button variant="outline" className="h-12 w-full" onClick={() => setBaseOpen(true)}>
           🏠 设置大本营（出发与返回）
@@ -273,6 +279,7 @@ export default function Index() {
       </main>
 
       <CustomerFormDialog open={addOpen} onOpenChange={setAddOpen} />
+      <LetterScanDialog open={scanOpen} onOpenChange={setScanOpen} />
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
       <NavigationChooserDialog
         customer={navCustomer}
