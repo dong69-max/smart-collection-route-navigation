@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { errorText, geocodeAddresses, insertCustomer } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
-import { nearestZone, todayKey } from "@/lib/collection/types";
+import { assignZone, todayKey } from "@/lib/collection/types";
 
 export function CustomerFormDialog({
   open,
@@ -87,8 +87,8 @@ export function CustomerFormDialog({
         geoStatus = hit.precise ? "ok" : "approximate";
       }
 
-      // 自动分区：按坐标归入最近的区
-      const zone = nearestZone(zones, lat as number, lng as number);
+      // 自动分区：先看地址里的地名，对不上再按坐标归最近的区
+      const zone = assignZone(zones, address.trim(), lat as number, lng as number);
 
       await insertCustomer({
         name: name.trim(),

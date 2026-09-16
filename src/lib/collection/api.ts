@@ -67,6 +67,10 @@ export async function insertZone(data: RecordData) {
   return db.insert("zones", data);
 }
 
+export async function updateZone(id: number, data: RecordData) {
+  return db.update("zones", { _row_id: `eq.${id}` }, data);
+}
+
 export async function deleteZone(id: number) {
   return db.delete("zones", { _row_id: `eq.${id}` });
 }

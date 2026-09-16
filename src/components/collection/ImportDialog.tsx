@@ -13,7 +13,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { errorText, geocodeAddresses, insertCustomer } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
-import { nearestZone, todayKey } from "@/lib/collection/types";
+import { assignZone, todayKey } from "@/lib/collection/types";
 
 interface Row {
   name: string;
@@ -102,7 +102,7 @@ export function ImportDialog({
           const hit = res.results[j];
           try {
             const zone = hit?.ok && hit.lat != null && hit.lng != null
-              ? nearestZone(zones, hit.lat, hit.lng as number)
+              ? assignZone(zones, row.address, hit.lat, hit.lng as number)
               : null;
             await insertCustomer({
               name: row.name,

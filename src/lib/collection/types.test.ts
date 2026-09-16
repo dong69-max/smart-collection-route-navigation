@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { displaySeq, haversineKm, isOpen, km, mins, money, nearestZone, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers } from "./types";
+import { assignZone, displaySeq, haversineKm, isOpen, km, matchZoneByAddress, mins, money, nearestZone, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers, zoneKeywords } from "./types";
 import type { Customer, Zone } from "./types";
 
 function make(partial: Partial<Customer>): Customer {
@@ -154,6 +154,53 @@ describe("固定编号", () => {
   it("未规划过的待处理客户用列表位置，已完成且无编号返回 null（地图显示勾）", () => {
     expect(displaySeq(make({ status: "pending", route_order: null }), 2)).toBe(2);
     expect(displaySeq(make({ status: "done", route_order: null }), 2)).toBeNull();
+  });
+});
+
+// @kliv-spec-derived — 用户给出 7 区清单：地址含 Taman Molek 归东区，含 Senai 归北区，地名优先于距离
+describe("按地址地名分区", () => {
+  const zones: Zone[] = [
+    { _row_id: 1, name: "北区", address: "Senai", lat: 1.6012, lng: 103.6447, keywords: "Senai,Kulai,Bandar Putra,Indahpura,Saleng" },
+    { _row_id: 2, name: "西区", address: "Skudai", lat: 1.5377, lng: 103.6286, keywords: "Skudai,Taman Universiti,Mutiara Rini" },
+    { _row_id: 3, name: "西南区", address: "Bukit Indah", lat: 1.4801, lng: 103.6596, keywords: "Bukit Indah,Taman Perling,Medini,Eco Botanic" },
+    { _row_id: 4, name: "中区", address: "Larkin", lat: 1.4966, lng: 103.7414, keywords: "JB Town,Larkin,Stulang,Tampoi,Kempas" },
+    { _row_id: 5, name: "东北区", address: "Taman Daya", lat: 1.555, lng: 103.7583, keywords: "Mount Austin,Taman Daya,Tebrau,Desa Cemerlang" },
+    { _row_id: 6, name: "东区", address: "Taman Molek", lat: 1.5286, lng: 103.7908, keywords: "Permas Jaya,Taman Molek,Johor Jaya" },
+    { _row_id: 7, name: "东南区", address: "Masai", lat: 1.4865, lng: 103.8854, keywords: "Masai,Pasir Gudang,Bandar Seri Alam" },
+  ];
+
+  it("地址含 Taman Molek 归东区，含 Senai 归北区，含 Pasir Gudang 归东南区", () => {
+    expect(matchZoneByAddress(zones, "12, Jalan Molek 1, Taman Molek, Johor Bahru")?.name).toBe("东区");
+    expect(matchZoneByAddress(zones, "Senai Business Park, Senai")?.name).toBe("北区");
+    expect(matchZoneByAddress(zones, "Jalan Pasir Gudang 4")?.name).toBe("东南区");
+  });
+
+  it("大小写不敏感，中文逗号顿号也能分隔", () => {
+    expect(matchZoneByAddress(zones, "SENAI BUSINESS PARK")?.name).toBe("北区");
+    const zh: Zone[] = [{ _row_id: 1, name: "X区", address: "", lat: 1, lng: 2, keywords: " senai 、kulai，saleng " }];
+    expect(zoneKeywords(zh[0])).toEqual(["senai", "kulai", "saleng"]);
+  });
+
+  it("更具体的地名赢（长匹配优先）", () => {
+    const zs: Zone[] = [
+      { _row_id: 1, name: "A区", address: "", lat: 1.5, lng: 103.7, keywords: "Alam" },
+      { _row_id: 2, name: "B区", address: "", lat: 1.5, lng: 103.7, keywords: "Bandar Seri Alam" },
+    ];
+    expect(matchZoneByAddress(zs, "Bandar Seri Alam, Masai")?.name).toBe("B区");
+  });
+
+  it("地名对不上时按坐标归最近的区", () => {
+    expect(assignZone(zones, "某条路 88 号", 1.528, 103.79)?.name).toBe("东区");
+    expect(assignZone(zones, "某条路 88 号", 1.601, 103.645)?.name).toBe("北区");
+  });
+
+  it("地址对不上地名且坐标太远则不分区", () => {
+    expect(assignZone(zones, "Kuala Lumpur", 3.14, 101.69)).toBeNull();
+  });
+
+  it("地址地名优先于坐标距离", () => {
+    // 坐标在北区中心，但地址写着 Taman Molek → 应归东区
+    expect(assignZone(zones, "Taman Molek, Johor Bahru", 1.601, 103.645)?.name).toBe("东区");
   });
 });
 

@@ -176,10 +176,46 @@ export interface Zone {
   address: string;
   lat: number | null;
   lng: number | null;
+  // 包含地区清单（逗号分隔）：地址里出现这些地名就直接归入该区
+  keywords?: string | null;
 }
 
 // 区的有效半径：离最近的区中心超过这个距离则不归入任何区
 export const ZONE_MAX_KM = 15;
+
+export function zoneKeywords(z: Zone): string[] {
+  return (z.keywords ?? "")
+    .split(/[,，、\n]/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+// 地址对号：地址里包含区清单中的地名就归入该区（更具体/更长的地名赢）
+export function matchZoneByAddress(zones: Zone[], address: string): Zone | null {
+  const a = address.toLowerCase();
+  let best: Zone | null = null;
+  let bestLen = 0;
+  for (const z of zones) {
+    for (const k of zoneKeywords(z)) {
+      if (a.includes(k) && k.length > bestLen) {
+        bestLen = k.length;
+        best = z;
+      }
+    }
+  }
+  return best;
+}
+
+// 自动分区：先按地址里的地名对号，对不上再按坐标归入最近的区（ZONE_MAX_KM 内）
+export function assignZone(
+  zones: Zone[],
+  address: string,
+  lat: number,
+  lng: number,
+  maxKm: number = ZONE_MAX_KM,
+): Zone | null {
+  return matchZoneByAddress(zones, address) ?? nearestZone(zones, lat, lng, maxKm);
+}
 
 // 自动分区：把客户坐标归入最近的区（直线距离，ZONE_MAX_KM 内才算）
 export function nearestZone(

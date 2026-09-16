@@ -18,9 +18,9 @@ import {
   updateCustomer,
 } from "./api";
 import {
+  assignZone,
   haversineKm,
   isOpen,
-  nearestZone,
   restoreSavedPosition,
   syncPlanToOpenCustomers,
   type Coords,
@@ -216,7 +216,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     [openCustomers, zoneFilter],
   );
 
-  // 一键重新自动分区：把所有已定位客户归入最近的区
+  // 一键重新自动分区：先按地址地名对号，再按坐标归入最近的区
   const reclassifyAll = useCallback(async () => {
     if (zones.length === 0) {
       toast.info("请先添加区（如东区、南区），再自动分区。");
@@ -224,7 +224,10 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     }
     const targets = customers.filter((c) => c.lat != null && c.lng != null);
     const updates = targets
-      .map((c) => ({ c, z: nearestZone(zones, c.lat as number, c.lng as number) }))
+      .map((c) => ({
+        c,
+        z: assignZone(zones, c.address, c.lat as number, c.lng as number),
+      }))
       .filter(({ c, z }) => (z?._row_id ?? null) !== (c.zone_id ?? null));
     if (updates.length > 0) {
       await Promise.all(

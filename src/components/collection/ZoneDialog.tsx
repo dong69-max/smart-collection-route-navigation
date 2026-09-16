@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { MapPin, Trash2 } from "lucide-react";
+import { MapPin, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,9 +28,10 @@ import {
   geocodeAddresses,
   insertZone,
   updateCustomer,
+  updateZone,
 } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
-import { ZONE_MAX_KM, type Zone } from "@/lib/collection/types";
+import { ZONE_MAX_KM, zoneKeywords, type Zone } from "@/lib/collection/types";
 
 export function ZoneDialog({
   open,
@@ -41,8 +43,12 @@ export function ZoneDialog({
   const { zones, customers, reloadZones, refresh, reclassifyAll } = useCollection();
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [keywords, setKeywords] = useState("");
   const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState<Zone | null>(null);
+  const [editing, setEditing] = useState<Zone | null>(null);
+  const [editKw, setEditKw] = useState("");
+  const [savingKw, setSavingKw] = useState(false);
 
   const countOf = (zoneId: number) =>
     customers.filter((c) => c.zone_id === zoneId).length;
@@ -65,12 +71,14 @@ export function ZoneDialog({
         address: address.trim(),
         lat: hit.lat as number,
         lng: hit.lng as number,
+        keywords: keywords.trim(),
       });
       await reloadZones();
       await reclassifyAll();
       toast.success(`已添加「${name.trim()}」，客户已自动分区`);
       setName("");
       setAddress("");
+      setKeywords("");
     } catch (e) {
       toast.error(errorText(e));
     } finally {
@@ -96,52 +104,117 @@ export function ZoneDialog({
     }
   };
 
+  const startEdit = (z: Zone) => {
+    setEditing(z);
+    setEditKw(z.keywords ?? "");
+  };
+
+  const saveKw = async () => {
+    if (!editing) return;
+    setSavingKw(true);
+    try {
+      await updateZone(editing._row_id, { keywords: editKw.trim() });
+      await reloadZones();
+      await reclassifyAll();
+      toast.success(`「${editing.name}」的包含地区已更新，客户已重新分区`);
+      setEditing(null);
+    } catch (e) {
+      toast.error(errorText(e));
+    } finally {
+      setSavingKw(false);
+    }
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>分区管理（自动分东/南/西区）</DialogTitle>
+            <DialogTitle>分区管理</DialogTitle>
             <DialogDescription>
-              每个区填一个代表地址即可。新客户按地址自动归入最近的区（{ZONE_MAX_KM}
-              km 内），收账时可选「今天专收某区」。
+              客户先按地址里的地名对号入区（如地址含 Taman Molek 归东区），
+              对不上再按坐标归入最近的区中心（{ZONE_MAX_KM}km 内）。
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             {zones.length > 0 ? (
               <ul className="space-y-2">
-                {zones.map((z) => (
-                  <li
-                    key={z._row_id}
-                    className="flex items-center justify-between rounded-lg border border-slate-200 p-3"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
-                        <MapPin className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold">
-                          {z.name} · {countOf(z._row_id)} 位客户
-                        </p>
-                        <p className="truncate text-xs text-slate-500">{z.address}</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setRemoving(z)}
-                      aria-label={`删除${z.name}`}
+                {zones.map((z) => {
+                  const kws = zoneKeywords(z);
+                  return (
+                    <li
+                      key={z._row_id}
+                      className="rounded-lg border border-slate-200 p-3"
                     >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </li>
-                ))}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                            <MapPin className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold">
+                              {z.name} · {countOf(z._row_id)} 位客户
+                            </p>
+                            <p className="truncate text-xs text-slate-500">{z.address}</p>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              editing?._row_id === z._row_id ? setEditing(null) : startEdit(z)
+                            }
+                            aria-label={`编辑${z.name}包含地区`}
+                          >
+                            <Pencil className="h-4 w-4 text-slate-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setRemoving(z)}
+                            aria-label={`删除${z.name}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                      {editing?._row_id === z._row_id ? (
+                        <div className="mt-2 space-y-2 border-t border-slate-100 pt-2">
+                          <Label htmlFor={`kw-${z._row_id}`}>
+                            包含地区（逗号分隔，地址含这些地名就归入本区）
+                          </Label>
+                          <Textarea
+                            id={`kw-${z._row_id}`}
+                            rows={3}
+                            value={editKw}
+                            onChange={(e) => setEditKw(e.target.value)}
+                            placeholder="Senai, Kulai, Bandar Putra…"
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => void saveKw()} disabled={savingKw}>
+                              {savingKw ? "保存中…" : "保存并重新分区"}
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>
+                              取消
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        kws.length > 0 && (
+                          <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                            包含：{kws.join("、")}
+                          </p>
+                        )
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-500">
-                还没有区。例如添加「东区」填 Taman Molek、「南区」填 Permas Jaya，
-                添加后系统会自动把客户按地址分到最近的区。
+                还没有区。例如添加「东区」填 Taman Molek，添加后系统会自动把客户按地址分到对应的区。
               </p>
             )}
 
@@ -165,6 +238,16 @@ export function ZoneDialog({
                   onChange={(e) => setAddress(e.target.value)}
                   className="h-12"
                   placeholder="Taman Molek, Johor Bahru"
+                />
+              </div>
+              <div>
+                <Label htmlFor="zkw">包含地区（逗号分隔，可不填）</Label>
+                <Textarea
+                  id="zkw"
+                  rows={2}
+                  value={keywords}
+                  onChange={(e) => setKeywords(e.target.value)}
+                  placeholder="Permas Jaya, Taman Molek, Johor Jaya…"
                 />
               </div>
               <Button onClick={add} disabled={busy} className="h-12 w-full">
