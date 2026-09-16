@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { assignZone, displaySeq, groupSameSpot, haversineKm, isOpen, isShown, km, matchZoneByAddress, mins, money, nearestZone, parseTodayZone, pointInPolygon, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers, zoneKeywords, zonePolygon } from "./types";
+import { assignZone, displaySeq, groupSameSpot, haversineKm, isDuplicateCustomer, isOpen, isShown, km, matchZoneByAddress, mins, money, nearestZone, normalizeAddress, parseTodayZone, pointInPolygon, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers, zoneKeywords, zonePolygon } from "./types";
 import type { Customer, Zone } from "./types";
 
 function make(partial: Partial<Customer>): Customer {
@@ -274,6 +274,44 @@ describe("上次定位还原", () => {
     const legacy = JSON.stringify({ lat: 1.5, lng: 103.7, label: "GPS" });
     expect(restoreSavedPosition(legacy, now)).toBeNull();
     expect(restoreSavedPosition(null, now)).toBeNull();
+  });
+});
+
+// @kliv-spec-derived — 用户要求：批量导入自动跳过重复客户；但同名不同地址（两间家）允许添加
+describe("重复客户检测", () => {
+  const existing: Array<{ name: string; address: string }> = [
+    { name: "Lim Pek Pek", address: "22, Jalan Pancasila 1" },
+  ];
+
+  it("同名同地址（标点空格大小写不同）算重复", () => {
+    expect(isDuplicateCustomer("lim pek pek", "22 jalan pancasila 1", existing)).toBe(true);
+    expect(isDuplicateCustomer("LIM PEK PEK", "22, JALAN PANCASILA 1", existing)).toBe(true);
+  });
+
+  it("同名但不同地址（两间家）不算重复，可以添加", () => {
+    expect(
+      isDuplicateCustomer(
+        "Lim Pek Pek",
+        "28, Jalan Serangkai 1, Taman Bukit Dahlia, 81700 Pasir Gudang, Johor",
+        existing,
+      ),
+    ).toBe(false);
+  });
+
+  it("同地址不同名不算重复（同屋不同欠款人）", () => {
+    expect(isDuplicateCustomer("Tan Ah Kau", "22, Jalan Pancasila 1", existing)).toBe(false);
+  });
+
+  it("空姓名或空地址不算重复", () => {
+    expect(isDuplicateCustomer("", "22, Jalan Pancasila 1", existing)).toBe(false);
+    expect(isDuplicateCustomer("Lim Pek Pek", "  ", existing)).toBe(false);
+  });
+
+  it("地址归一化：去标点、压缩空格、转小写", () => {
+    expect(normalizeAddress("28, Jalan Serangkai 1, Taman Bukit Dahlia")).toBe(
+      "28 jalan serangkai 1 taman bukit dahlia",
+    );
+    expect(normalizeAddress("A，B。C；D")).toBe("a b c d");
   });
 });
 

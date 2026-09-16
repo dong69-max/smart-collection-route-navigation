@@ -19,9 +19,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { errorText, geocodeAddresses, insertCustomer } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
-import { assignZone, todayKey } from "@/lib/collection/types";
+import { assignZone, isDuplicateCustomer, todayKey } from "@/lib/collection/types";
 
 export function CustomerFormDialog({
   open,
@@ -30,7 +40,7 @@ export function CustomerFormDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { refresh, zones } = useCollection();
+  const { refresh, zones, customers } = useCollection();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -41,6 +51,8 @@ export function CustomerFormDialog({
   const [manualLng, setManualLng] = useState("");
   const [geoError, setGeoError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // 发现同名同地址的重复客户时先确认再保存
+  const [dupConfirm, setDupConfirm] = useState(false);
   // 地址无法精确识别时自动填入的大致坐标（未被修改时保存后标记「坐标」）
   const [autoCoords, setAutoCoords] = useState<{ lat: number; lng: number; matched: string | null } | null>(null);
 
@@ -57,11 +69,17 @@ export function CustomerFormDialog({
     setAutoCoords(null);
   };
 
-  const save = async () => {
+  const save = async (force = false) => {
     if (!name.trim() || !address.trim()) {
       toast.error("请填写客户姓名与地址。");
       return;
     }
+    // 重复检测：同名+同地址才提醒；同名不同地址（两间家）直接放行
+    if (!force && isDuplicateCustomer(name, address, customers)) {
+      setDupConfirm(true);
+      return;
+    }
+    setDupConfirm(false);
     setSaving(true);
     setGeoError(null);
     try {
@@ -200,11 +218,26 @@ export function CustomerFormDialog({
             </div>
           )}
 
-          <Button onClick={save} disabled={saving} className="h-14 w-full text-lg">
+          <Button onClick={() => void save()} disabled={saving} className="h-14 w-full text-lg">
             {saving ? "定位中…" : autoCoords ? "保存（用上方坐标）" : "保存客户"}
           </Button>
         </div>
       </DialogContent>
+
+      <AlertDialog open={dupConfirm} onOpenChange={setDupConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>这位客户已存在？</AlertDialogTitle>
+            <AlertDialogDescription>
+              「{name.trim()}」在「{address.trim()}」已有一条记录。确认重复请取消；如果是同一人在不同地址（两间家）不会触发此提醒，可放心保存。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void save(true)}>仍要保存</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

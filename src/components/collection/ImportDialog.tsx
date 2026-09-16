@@ -13,7 +13,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { errorText, geocodeAddresses, insertCustomer } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
-import { assignZone, todayKey } from "@/lib/collection/types";
+import { assignZone, isDuplicateCustomer, todayKey, type Customer } from "@/lib/collection/types";
 
 interface Row {
   name: string;
@@ -39,11 +39,11 @@ export function ImportDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { refresh, zones } = useCollection();
+  const { refresh, zones, customers } = useCollection();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [summary, setSummary] = useState<{ ok: number; failed: string[] } | null>(null);
+  const [summary, setSummary] = useState<{ ok: number; failed: string[]; skipped: string[] } | null>(null);
 
   const downloadTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
@@ -93,12 +93,21 @@ export function ImportDialog({
 
       let ok = 0;
       const failed: string[] = [];
+      const skipped: string[] = [];
+      // 重复检测基准：已入库的客户 + 本次文件里已添加过的（防止文件内自重复）。
+      // 只有同名+同地址才算重复；同名不同地址（两间家）照常添加。
+      const seen: Array<Pick<Customer, "name" | "address">> = [...customers];
       const chunkSize = 10;
       for (let i = 0; i < rows.length; i += chunkSize) {
         const chunk = rows.slice(i, i + chunkSize);
         const res = await geocodeAddresses(chunk.map((r) => r.address));
         for (let j = 0; j < chunk.length; j++) {
           const row = chunk[j];
+          if (isDuplicateCustomer(row.name, row.address, seen)) {
+            skipped.push(`${row.name} — ${row.address}`);
+            continue;
+          }
+          seen.push({ name: row.name, address: row.address });
           const hit = res.results[j];
           try {
             const zone = hit?.ok && hit.lat != null && hit.lng != null
@@ -126,7 +135,7 @@ export function ImportDialog({
         }
         setProgress(Math.round(((i + chunk.length) / rows.length) * 100));
       }
-      setSummary({ ok, failed });
+      setSummary({ ok, failed, skipped });
       await refresh();
     } catch (e) {
       toast.error(`导入失败：${errorText(e)}`);
@@ -170,7 +179,17 @@ export function ImportDialog({
           {summary && (
             <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
               <p className="font-semibold text-emerald-700">成功定位：{summary.ok}</p>
+              {summary.skipped.length > 0 && (
+                <p className="font-semibold text-slate-500">跳过重复：{summary.skipped.length}</p>
+              )}
               <p className="font-semibold text-amber-700">需要检查：{summary.failed.length}</p>
+              {summary.skipped.length > 0 && (
+                <ul className="max-h-40 list-disc space-y-1 overflow-y-auto pl-5 text-xs text-slate-500">
+                  {summary.skipped.map((s, i) => (
+                    <li key={i}>{s}（同名同地址已存在）</li>
+                  ))}
+                </ul>
+              )}
               {summary.failed.length > 0 && (
                 <ul className="max-h-40 list-disc space-y-1 overflow-y-auto pl-5 text-xs text-slate-600">
                   {summary.failed.map((f, i) => (

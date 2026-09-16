@@ -320,6 +320,32 @@ export function parseTodayZone(raw: string | null, today: string): TodayZone | n
   }
 }
 
+// ---- 重复客户检测 ----
+
+// 地址归一化：去标点/多余空格/大小写差异，让「22, Jalan Pancasila 1」和「22 jalan pancasila 1」算同一地址
+export function normalizeAddress(a: string): string {
+  return a
+    .toLowerCase()
+    .replace(/[,，.。;；:：!！?？\-_/\\]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// 重复 = 同名 + 同地址（归一化后比较）。
+// 同名但不同地址不算重复（客户可能有两间家），同地址不同名也不算（同屋不同欠款人）。
+export function isDuplicateCustomer(
+  name: string,
+  address: string,
+  existing: Array<Pick<Customer, "name" | "address">>,
+): boolean {
+  const n = name.trim().toLowerCase();
+  const a = normalizeAddress(address);
+  if (!n || !a) return false;
+  return existing.some(
+    (c) => c.name.trim().toLowerCase() === n && normalizeAddress(c.address) === a,
+  );
+}
+
 // ---- 地图同地点合并 ----
 
 export interface SpotGroup {
