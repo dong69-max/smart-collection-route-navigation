@@ -58,6 +58,9 @@ export function CustomerCard({
             {zoneName && (
               <Badge className="bg-indigo-100 text-indigo-700">{zoneName}</Badge>
             )}
+            {customer.geo_status === "approximate" && (
+              <Badge className="bg-amber-100 text-amber-700" title="坐标为自动填入的大致位置，建议核对">坐标</Badge>
+            )}
             {legText && <span className="text-slate-500">{legText}</span>}
             {!open && (
               <Badge variant="secondary">{STATUS_LABELS[customer.status]}</Badge>

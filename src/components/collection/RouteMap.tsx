@@ -111,7 +111,7 @@ export function RouteMap({
         icon: pinIcon(color, label, c.priority === 1 && !done),
       }).addTo(layer);
       m.bindPopup(
-        `<div style="font-size:13px"><b>${seq != null ? `第 ${seq} 站 · ` : ""}${done ? "✅ " : ""}${c.name}</b><br/>${c.address}<br/>欠款 RM ${c.amount}</div>`,
+        `<div style="font-size:13px"><b>${seq != null ? `第 ${seq} 站 · ` : ""}${done ? "✅ " : ""}${c.name}</b><br/>${c.address}<br/>欠款 RM ${c.amount}${c.geo_status === "approximate" ? '<br/>📍 坐标：大致位置（自动填入，建议核对）' : ""}</div>`,
       );
       if (onSelect) m.on("click", () => onSelect(c));
       bounds.push([c.lat as number, c.lng as number]);

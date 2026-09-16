@@ -10,6 +10,8 @@ export interface GeocodeHit {
   lng?: number;
   formatted?: string;
   precise?: boolean;
+  // 命中的降级地址变体（如去掉机构名后的路名+邮编）
+  matched?: string;
   error?: string;
 }
 

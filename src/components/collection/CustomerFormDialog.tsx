@@ -41,6 +41,8 @@ export function CustomerFormDialog({
   const [manualLng, setManualLng] = useState("");
   const [geoError, setGeoError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // 地址无法精确识别时自动填入的大致坐标（未被修改时保存后标记「坐标」）
+  const [autoCoords, setAutoCoords] = useState<{ lat: number; lng: number; matched: string | null } | null>(null);
 
   const reset = () => {
     setName("");
@@ -52,6 +54,7 @@ export function CustomerFormDialog({
     setManualLat("");
     setManualLng("");
     setGeoError(null);
+    setAutoCoords(null);
   };
 
   const save = async () => {
@@ -74,6 +77,11 @@ export function CustomerFormDialog({
           setSaving(false);
           return;
         }
+        // 自动填入且未修改 → 大致坐标（保存后带「坐标」标记）；用户改过 → 手动坐标
+        geoStatus =
+          autoCoords && Number(manualLat) === autoCoords.lat && Number(manualLng) === autoCoords.lng
+            ? "approximate"
+            : "manual";
       } else {
         const res = await geocodeAddresses([address.trim()]);
         const hit = res.results[0];
@@ -84,7 +92,21 @@ export function CustomerFormDialog({
         }
         lat = hit.lat as number;
         lng = hit.lng as number;
-        geoStatus = hit.precise ? "ok" : "approximate";
+        if (hit.precise) {
+          geoStatus = "ok";
+        } else {
+          // 无法精确识别：自动填入大致坐标，核对/微调后再保存（保存后带「坐标」标记）
+          setManualLat(String(hit.lat));
+          setManualLng(String(hit.lng));
+          setAutoCoords({ lat: hit.lat as number, lng: hit.lng as number, matched: hit.matched ?? null });
+          setGeoError(
+            `地址无法精确定位${hit.matched ? `，已按「${hit.matched}」` : "，已"}自动填入大致坐标。` +
+              "保存后此客户会带「坐标」标记，可现在微调坐标后保存。",
+          );
+          setSaving(false);
+          toast.info("已自动填入大致坐标，请核对后保存");
+          return;
+        }
       }
 
       // 自动分区：先看地址里的地名，对不上再按坐标归最近的区
@@ -106,7 +128,7 @@ export function CustomerFormDialog({
       });
       await refresh();
       toast.success(
-        (geoStatus === "approximate" ? "已添加（地址定位较粗略，建议核对）" : "客户已添加") +
+        (geoStatus === "approximate" ? "已添加（坐标为大标位置，卡片带「坐标」标记）" : "客户已添加") +
           (zone ? `，自动归入${zone.name}` : ""),
       );
       reset();
@@ -179,7 +201,7 @@ export function CustomerFormDialog({
           )}
 
           <Button onClick={save} disabled={saving} className="h-14 w-full text-lg">
-            {saving ? "定位中…" : "保存客户"}
+            {saving ? "定位中…" : autoCoords ? "保存（用上方坐标）" : "保存客户"}
           </Button>
         </div>
       </DialogContent>
