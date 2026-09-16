@@ -38,6 +38,8 @@ export function RouteMap({
   const ref = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  // 上一次自动缩放时地图上的点（内容没变就不重新缩放，避免吞掉用户的手动缩放）
+  const lastBoundsKeyRef = useRef<string>("");
 
   const points = useMemo(
     () => customers.filter((c) => c.lat != null && c.lng != null),
@@ -158,7 +160,11 @@ export function RouteMap({
       }
     }
 
-    if (bounds.length > 0) {
+    // 只有地图上的点真的变了（新增/删除客户、定位/大本营变化）才自动缩放到全貌；
+    // 后台每 10 秒的数据刷新内容没变时，保持用户当前的缩放和拖动位置。
+    const boundsKey = bounds.map((b) => `${(b as L.LatLngTuple)[0]},${(b as L.LatLngTuple)[1]}`).join("|");
+    if (bounds.length > 0 && boundsKey !== lastBoundsKeyRef.current) {
+      lastBoundsKeyRef.current = boundsKey;
       map.fitBounds(L.latLngBounds(bounds).pad(0.25), { maxZoom: 15 });
     }
     setTimeout(() => map.invalidateSize(), 120);
