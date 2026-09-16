@@ -28,6 +28,7 @@ export interface Customer {
   completed_at: number | null;
   collected_amount: number | null;
   archived: number;
+  hidden: number;
 }
 
 export interface HistoryRow {
@@ -88,6 +89,11 @@ export const PRIORITY_LABELS: Record<number, string> = {
 
 export function isOpen(c: Customer) {
   return OPEN_STATUSES.includes(c.status) && c.archived !== 1;
+}
+
+// 隐藏的客户今天不去：不进任务清单、路线、地图和统计，任务页可随时恢复
+export function isShown(c: Customer) {
+  return isOpen(c) && c.hidden !== 1;
 }
 
 // 固定编号：规划时写进客户的 route_order 就是它的终身号码。

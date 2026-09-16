@@ -21,6 +21,7 @@ import {
   assignZone,
   haversineKm,
   isOpen,
+  isShown,
   parseTodayZone,
   restoreSavedPosition,
   syncPlanToOpenCustomers,
@@ -66,7 +67,9 @@ interface Ctx {
   planRoute: () => Promise<void>;
   endDay: () => Promise<void>;
   reorderManually: (ids: number[]) => Promise<void>;
-  setNextStop: (id: number) => Promise<void>;
+  hideCustomer: (id: number) => Promise<void>;
+  unhideCustomer: (id: number) => Promise<void>;
+  hiddenCustomers: Customer[];
 }
 
 import { BASE_KEY, parseBase, type Base } from "@/components/collection/BaseDialog";
@@ -215,7 +218,14 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     }
   }, [clearPosition, persistPosition]);
 
-  const openCustomers = useMemo(() => customers.filter(isOpen), [customers]);
+  // 待收客户 = 待处理且未被隐藏：隐藏的不进路线/统计/地图
+  const openCustomers = useMemo(() => customers.filter(isShown), [customers]);
+
+  // 已隐藏（今天不去）的客户：任务页可查看并一键恢复
+  const hiddenCustomers = useMemo(
+    () => customers.filter((c) => c.hidden === 1 && isOpen(c)),
+    [customers],
+  );
 
   // 按区筛选后的待收账客户：选了区后任务页与路线都只看这个区
   const zoneFilteredOpen = useMemo(
@@ -397,19 +407,22 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     [mode, persistPlan, plan, refresh],
   );
 
-  const setNextStop = useCallback(
+  const hideCustomer = useCallback(
     async (id: number) => {
-      await Promise.all(
-        customers
-          .filter((c) => c.pinned_next === 1 && c._row_id !== id)
-          .map((c) => updateCustomer(c._row_id, { pinned_next: 0 })),
-      );
-      await updateCustomer(id, { pinned_next: 1 });
+      await updateCustomer(id, { hidden: 1, pinned_next: 0 });
       await refresh();
-      toast.success("已设为下一站，重新规划中…");
-      await planRoute();
+      toast.success("已隐藏：今天不去这家，任务页可随时恢复。");
     },
-    [customers, planRoute, refresh],
+    [refresh],
+  );
+
+  const unhideCustomer = useCallback(
+    async (id: number) => {
+      await updateCustomer(id, { hidden: 0 });
+      await refresh();
+      toast.success("已恢复到今日任务。");
+    },
+    [refresh],
   );
 
   const value: Ctx = {
@@ -442,7 +455,9 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     planRoute,
     endDay,
     reorderManually,
-    setNextStop,
+    hideCustomer,
+    unhideCustomer,
+    hiddenCustomers,
   };
 
   return <CollectionContext.Provider value={value}>{children}</CollectionContext.Provider>;

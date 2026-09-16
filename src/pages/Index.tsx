@@ -62,12 +62,13 @@ export default function Index() {
   const [endDayOpen, setEndDayOpen] = useState(false);
   const [manual, setManual] = useState("");
 
-  // 定了今日目标区后，首页统计只看这个区（比如今天专收西区）
+  // 隐藏的客户不进首页统计；定了今日目标区后只看这个区
+  const active = customers.filter((c) => c.hidden !== 1);
   const scoped = todayZone
-    ? customers.filter((c) =>
+    ? active.filter((c) =>
         todayZone.zoneId === "none" ? c.zone_id == null : c.zone_id === todayZone.zoneId,
       )
-    : customers;
+    : active;
   const total = scoped.length;
   const openCount = scoped.filter(isOpen).length;
   const doneCount = total - openCount;
@@ -78,8 +79,8 @@ export default function Index() {
     ? `返回大本营：${km(plan.return_leg.distance_m)} · 约 ${mins(plan.return_leg.duration_s)}`
     : null;
   const ungeocoded = useMemo(
-    () => customers.filter((c) => isOpen(c) && c.lat == null).length,
-    [customers],
+    () => active.filter((c) => isOpen(c) && c.lat == null).length,
+    [active],
   );
 
   return (

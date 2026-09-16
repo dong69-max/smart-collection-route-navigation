@@ -29,7 +29,7 @@ export default function RoutePage() {
     locate,
     locating,
     reorderManually,
-    setNextStop,
+    hideCustomer,
     base,
     refresh,
     endDay,
@@ -51,6 +51,8 @@ export default function RoutePage() {
   const zoneName =
     zoneFilter === "all" ? null : zoneFilter === "none" ? "未分区" : zones.find((z) => z._row_id === zoneFilter)?.name;
   const hasUnzoned = customers.some((c) => c.zone_id == null);
+  // 地图不显示隐藏的客户
+  const mapCustomers = zoneFilter === "all" ? customers.filter((c) => c.hidden !== 1) : visible;
 
   const move = async (index: number, dir: -1 | 1) => {
     const ids = visible.map((c) => c._row_id);
@@ -131,7 +133,7 @@ export default function RoutePage() {
 
       <div className="px-4 pt-4">
         <RouteMap
-          customers={zoneFilter === "all" ? customers : visible}
+          customers={mapCustomers}
           position={position}
           nextId={visible[0]?._row_id}
           base={base}
@@ -190,7 +192,7 @@ export default function RoutePage() {
                 legText={leg ? `${km(leg.distance_m)} · 约 ${mins(leg.duration_s)}` : undefined}
                 zoneName={c.zone_id != null ? zones.find((z) => z._row_id === c.zone_id)?.name ?? null : null}
                 onComplete={setComplete}
-                onSetNext={(x) => void setNextStop(x._row_id)}
+                onHide={(x) => void hideCustomer(x._row_id)}
                 onDelete={(x) => void remove(x)}
               />
               <div className="flex justify-end gap-1">

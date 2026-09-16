@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { assignZone, displaySeq, groupSameSpot, haversineKm, isOpen, km, matchZoneByAddress, mins, money, nearestZone, parseTodayZone, pointInPolygon, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers, zoneKeywords, zonePolygon } from "./types";
+import { assignZone, displaySeq, groupSameSpot, haversineKm, isOpen, isShown, km, matchZoneByAddress, mins, money, nearestZone, parseTodayZone, pointInPolygon, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers, zoneKeywords, zonePolygon } from "./types";
 import type { Customer, Zone } from "./types";
 
 function make(partial: Partial<Customer>): Customer {
@@ -22,6 +22,7 @@ function make(partial: Partial<Customer>): Customer {
     completed_at: null,
     collected_amount: null,
     archived: 0,
+    hidden: 0,
     ...partial,
   };
 }
@@ -273,6 +274,22 @@ describe("上次定位还原", () => {
     const legacy = JSON.stringify({ lat: 1.5, lng: 103.7, label: "GPS" });
     expect(restoreSavedPosition(legacy, now)).toBeNull();
     expect(restoreSavedPosition(null, now)).toBeNull();
+  });
+});
+
+// @kliv-spec-derived — 用户要求：今天不想去的客户隐藏后不进任务/路线/统计，之后可再显示
+ describe("隐藏客户", () => {
+  it("隐藏的待处理客户不再显示", () => {
+    expect(isShown(make({ status: "pending", hidden: 1 }))).toBe(false);
+  });
+
+  it("未隐藏的待处理客户正常显示", () => {
+    expect(isShown(make({ status: "pending", hidden: 0 }))).toBe(true);
+  });
+
+  it("已完成的客户无论隐藏与否都不在待处理清单", () => {
+    expect(isShown(make({ status: "done", hidden: 0 }))).toBe(false);
+    expect(isShown(make({ status: "done", hidden: 1 }))).toBe(false);
   });
 });
 

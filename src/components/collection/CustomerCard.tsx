@@ -1,4 +1,4 @@
-import { CheckCircle2, MapPin, Navigation, Phone, Star, Trash2 } from "lucide-react";
+import { CheckCircle2, EyeOff, MapPin, Navigation, Phone, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ export function CustomerCard({
   legText,
   zoneName,
   onComplete,
-  onSetNext,
+  onHide,
   onDelete,
 }: {
   customer: Customer;
@@ -29,7 +29,7 @@ export function CustomerCard({
   legText?: string;
   zoneName?: string | null;
   onComplete?: (c: Customer) => void;
-  onSetNext?: (c: Customer) => void;
+  onHide?: (c: Customer) => void;
   onDelete?: (c: Customer) => void;
 }) {
   const [navOpen, setNavOpen] = useState(false);
@@ -98,9 +98,10 @@ export function CustomerCard({
         )}
       </div>
       <div className="mt-2 flex gap-2">
-        {open && onSetNext && (
-          <Button variant="ghost" size="sm" className="flex-1 text-slate-500" onClick={() => onSetNext(customer)}>
-            设为下一站
+        {open && onHide && (
+          <Button variant="ghost" size="sm" className="flex-1 text-slate-500" onClick={() => onHide(customer)}>
+            <EyeOff className="mr-1 h-4 w-4" />
+            隐藏此客户
           </Button>
         )}
         {customer.phone && open && (
