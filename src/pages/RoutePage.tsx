@@ -33,13 +33,27 @@ export default function RoutePage() {
     base,
     refresh,
     endDay,
+    zones,
+    zoneFilter,
+    setZoneFilter,
   } = useCollection();
   const [complete, setComplete] = useState<Customer | null>(null);
 
   const legById = new Map((plan?.legs ?? []).map((l) => [l.id, l]));
 
+  // 选了区就只看/只规划这个区的客户（保持规划顺序）
+  const visible =
+    zoneFilter === "all"
+      ? orderedOpen
+      : orderedOpen.filter((c) =>
+          zoneFilter === "none" ? c.zone_id == null : c.zone_id === zoneFilter,
+        );
+  const zoneName =
+    zoneFilter === "all" ? null : zoneFilter === "none" ? "未分区" : zones.find((z) => z._row_id === zoneFilter)?.name;
+  const hasUnzoned = customers.some((c) => c.zone_id == null);
+
   const move = async (index: number, dir: -1 | 1) => {
-    const ids = orderedOpen.map((c) => c._row_id);
+    const ids = visible.map((c) => c._row_id);
     const target = index + dir;
     if (target < 0 || target >= ids.length) return;
     [ids[index], ids[target]] = [ids[target], ids[index]];
@@ -62,8 +76,10 @@ export default function RoutePage() {
         <h1 className="text-xl font-bold">今日路线</h1>
         <p className="mt-1 text-sm text-slate-300">
           {plan
-            ? `总距离 ${km(plan.total_distance_m)} · 预计驾驶 ${mins(plan.total_duration_s)}${plan.manual ? " · 路线已手动调整" : ""}`
-            : "尚未规划路线"}
+            ? `总距离 ${km(plan.total_distance_m)} · 预计驾驶 ${mins(plan.total_duration_s)}${zoneName ? ` · 今日专收：${zoneName}` : ""}${plan.manual ? " · 路线已手动调整" : ""}`
+            : zoneName
+              ? `今日专收：${zoneName} · 尚未规划路线`
+              : "尚未规划路线"}
         </p>
         <div className="mt-3 flex gap-2">
           {MODES.map((m) => (
@@ -78,15 +94,48 @@ export default function RoutePage() {
             </button>
           ))}
         </div>
+        {zones.length > 0 && (
+          <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+            <button
+              onClick={() => setZoneFilter("all")}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${
+                zoneFilter === "all" ? "border-sky-400 bg-sky-500 text-white" : "border-white/30 bg-white/10 text-slate-200"
+              }`}
+            >
+              全部地区
+            </button>
+            {zones.map((z) => (
+              <button
+                key={z._row_id}
+                onClick={() => setZoneFilter(z._row_id)}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${
+                  zoneFilter === z._row_id ? "border-sky-400 bg-sky-500 text-white" : "border-white/30 bg-white/10 text-slate-200"
+                }`}
+              >
+                {z.name}
+              </button>
+            ))}
+            {hasUnzoned && (
+              <button
+                onClick={() => setZoneFilter("none")}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${
+                  zoneFilter === "none" ? "border-sky-400 bg-sky-500 text-white" : "border-white/30 bg-white/10 text-slate-200"
+                }`}
+              >
+                未分区
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       <div className="px-4 pt-4">
         <RouteMap
-          customers={customers}
+          customers={zoneFilter === "all" ? customers : visible}
           position={position}
-          nextId={orderedOpen[0]?._row_id}
+          nextId={visible[0]?._row_id}
           base={base}
-          orderedIds={orderedOpen.map((c) => c._row_id)}
+          orderedIds={visible.map((c) => c._row_id)}
           height={280}
           onSelect={() => undefined}
         />
@@ -123,12 +172,12 @@ export default function RoutePage() {
       </div>
 
       <div className="space-y-3 px-4 py-4">
-        {orderedOpen.length === 0 && (
+        {visible.length === 0 && (
           <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500">
-            没有待处理客户。
+            {zoneName ? "这个区没有待处理客户。" : "没有待处理客户。"}
           </p>
         )}
-        {orderedOpen.map((c, i) => {
+        {visible.map((c, i) => {
           const leg = legById.get(c._row_id);
           return (
             <div key={c._row_id} className="space-y-1">
@@ -136,6 +185,7 @@ export default function RoutePage() {
                 customer={c}
                 index={i + 1}
                 legText={leg ? `${km(leg.distance_m)} · 约 ${mins(leg.duration_s)}` : undefined}
+                zoneName={c.zone_id != null ? zones.find((z) => z._row_id === c.zone_id)?.name ?? null : null}
                 onComplete={setComplete}
                 onSetNext={(x) => void setNextStop(x._row_id)}
                 onDelete={(x) => void remove(x)}
@@ -148,7 +198,7 @@ export default function RoutePage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => void move(i, 1)}
-                  disabled={i === orderedOpen.length - 1}
+                  disabled={i === visible.length - 1}
                 >
                   <ArrowDown className="h-4 w-4" />
                 </Button>

@@ -24,6 +24,7 @@ export interface Customer {
   task_date: string | null;
   route_order: number | null;
   pinned_next: number;
+  zone_id: number | null;
   completed_at: number | null;
   collected_amount: number | null;
   archived: number;
@@ -159,4 +160,35 @@ export function restoreSavedPosition(
   } catch {
     return null;
   }
+}
+
+export interface Zone {
+  _row_id: number;
+  name: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+}
+
+// 区的有效半径：离最近的区中心超过这个距离则不归入任何区
+export const ZONE_MAX_KM = 15;
+
+// 自动分区：把客户坐标归入最近的区（直线距离，ZONE_MAX_KM 内才算）
+export function nearestZone(
+  zones: Zone[],
+  lat: number,
+  lng: number,
+  maxKm: number = ZONE_MAX_KM,
+): Zone | null {
+  let best: Zone | null = null;
+  let bestD = Infinity;
+  for (const z of zones) {
+    if (z.lat == null || z.lng == null) continue;
+    const d = haversineKm({ lat, lng }, { lat: z.lat, lng: z.lng });
+    if (d < bestD) {
+      bestD = d;
+      best = z;
+    }
+  }
+  return bestD <= maxKm ? best : null;
 }

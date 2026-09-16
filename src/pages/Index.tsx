@@ -19,6 +19,7 @@ import { ImportDialog } from "@/components/collection/ImportDialog";
 import { CompleteTaskDialog } from "@/components/collection/CompleteTaskDialog";
 import { NavigationChooserDialog } from "@/components/collection/navigation";
 import { BaseDialog } from "@/components/collection/BaseDialog";
+import { ZoneDialog } from "@/components/collection/ZoneDialog";
 import { useCollection } from "@/lib/collection/store";
 import { isOpen, km, mins, money, type Customer } from "@/lib/collection/types";
 
@@ -55,6 +56,7 @@ export default function Index() {
   const [complete, setComplete] = useState<Customer | null>(null);
   const [navCustomer, setNavCustomer] = useState<Customer | null>(null);
   const [baseOpen, setBaseOpen] = useState(false);
+  const [zoneOpen, setZoneOpen] = useState(false);
   const [endDayOpen, setEndDayOpen] = useState(false);
   const [manual, setManual] = useState("");
 
@@ -179,6 +181,10 @@ export default function Index() {
           🏠 设置大本营（出发与返回）
         </Button>
 
+        <Button variant="outline" className="h-12 w-full text-indigo-700" onClick={() => setZoneOpen(true)}>
+          🗺️ 分区管理（自动分东/南/西区，可选今天专收某区）
+        </Button>
+
         {nearby.length > 0 && (
           <section className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
             <p className="text-sm font-semibold text-sky-900">附近还有 {nearby.length} 个任务</p>
@@ -256,6 +262,7 @@ export default function Index() {
         onOpenChange={(v) => !v && setNavCustomer(null)}
       />
       <BaseDialog open={baseOpen} onOpenChange={setBaseOpen} onSaved={() => void reloadBase()} />
+      <ZoneDialog open={zoneOpen} onOpenChange={setZoneOpen} />
       <AlertDialog open={endDayOpen} onOpenChange={setEndDayOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { errorText, geocodeAddresses, insertCustomer } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
-import { todayKey } from "@/lib/collection/types";
+import { nearestZone, todayKey } from "@/lib/collection/types";
 
 export function CustomerFormDialog({
   open,
@@ -30,7 +30,7 @@ export function CustomerFormDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { refresh } = useCollection();
+  const { refresh, zones } = useCollection();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -87,6 +87,9 @@ export function CustomerFormDialog({
         geoStatus = hit.precise ? "ok" : "approximate";
       }
 
+      // 自动分区：按坐标归入最近的区
+      const zone = nearestZone(zones, lat as number, lng as number);
+
       await insertCustomer({
         name: name.trim(),
         phone: phone.trim() || null,
@@ -99,10 +102,12 @@ export function CustomerFormDialog({
         status: "pending",
         notes: notes.trim() || null,
         task_date: todayKey(),
+        zone_id: zone?._row_id ?? null,
       });
       await refresh();
       toast.success(
-        geoStatus === "approximate" ? "已添加（地址定位较粗略，建议核对）" : "客户已添加",
+        (geoStatus === "approximate" ? "已添加（地址定位较粗略，建议核对）" : "客户已添加") +
+          (zone ? `，自动归入${zone.name}` : ""),
       );
       reset();
       onOpenChange(false);

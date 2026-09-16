@@ -1,7 +1,7 @@
 import db from "@/lib/shared/kliv-database.js";
 import type { RecordData } from "@/lib/shared/kliv-database.js";
 import functions from "@/lib/shared/kliv-functions.js";
-import type { Coords, Customer, HistoryRow, RouteLeg, RouteMode } from "./types";
+import type { Coords, Customer, HistoryRow, RouteLeg, RouteMode, Zone } from "./types";
 
 export interface GeocodeHit {
   address: string;
@@ -57,6 +57,18 @@ export async function listHistory(): Promise<HistoryRow[]> {
     order: "recorded_at.desc",
     limit: "500",
   })) as unknown as HistoryRow[];
+}
+
+export async function listZones(): Promise<Zone[]> {
+  return (await db.query("zones", { order: "_row_id.asc", limit: "100" })) as unknown as Zone[];
+}
+
+export async function insertZone(data: RecordData) {
+  return db.insert("zones", data);
+}
+
+export async function deleteZone(id: number) {
+  return db.delete("zones", { _row_id: `eq.${id}` });
 }
 
 export async function insertCustomer(data: RecordData) {

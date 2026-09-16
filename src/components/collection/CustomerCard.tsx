@@ -19,6 +19,7 @@ export function CustomerCard({
   customer,
   index,
   legText,
+  zoneName,
   onComplete,
   onSetNext,
   onDelete,
@@ -26,6 +27,7 @@ export function CustomerCard({
   customer: Customer;
   index?: number;
   legText?: string;
+  zoneName?: string | null;
   onComplete?: (c: Customer) => void;
   onSetNext?: (c: Customer) => void;
   onDelete?: (c: Customer) => void;
@@ -53,6 +55,9 @@ export function CustomerCard({
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
             <span className="font-semibold text-rose-600">{money(customer.amount)}</span>
+            {zoneName && (
+              <Badge className="bg-indigo-100 text-indigo-700">{zoneName}</Badge>
+            )}
             {legText && <span className="text-slate-500">{legText}</span>}
             {!open && (
               <Badge variant="secondary">{STATUS_LABELS[customer.status]}</Badge>

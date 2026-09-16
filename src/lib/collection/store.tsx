@@ -13,12 +13,14 @@ import {
   getSetting,
   listCustomers,
   listHistory,
+  listZones,
   requestRoute,
   updateCustomer,
 } from "./api";
 import {
   haversineKm,
   isOpen,
+  nearestZone,
   restoreSavedPosition,
   syncPlanToOpenCustomers,
   type Coords,
@@ -26,13 +28,22 @@ import {
   type HistoryRow,
   type RouteMode,
   type RoutePlan,
+  type Zone,
 } from "./types";
+
+export type ZoneFilter = "all" | "none" | number;
 
 interface Ctx {
   customers: Customer[];
   base: Base | null;
   reloadBase: () => Promise<void>;
   history: HistoryRow[];
+  zones: Zone[];
+  reloadZones: () => Promise<void>;
+  zoneFilter: ZoneFilter;
+  setZoneFilter: (z: ZoneFilter) => void;
+  zoneFilteredOpen: Customer[];
+  reclassifyAll: () => Promise<void>;
   loading: boolean;
   position: Coords | null;
   positionLabel: string;
@@ -74,6 +85,16 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
   const [planError, setPlanError] = useState<string | null>(null);
   const [mode, setMode] = useState<RouteMode>("fastest");
   const [base, setBase] = useState<Base | null>(null);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [zoneFilter, setZoneFilter] = useState<ZoneFilter>("all");
+
+  const reloadZones = useCallback(async () => {
+    try {
+      setZones(await listZones());
+    } catch {
+      setZones([]);
+    }
+  }, []);
 
   const reloadBase = useCallback(async () => {
     try {
@@ -98,6 +119,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
     void reloadBase();
+    void reloadZones();
     try {
       const savedPlan = localStorage.getItem(PLAN_KEY);
       if (savedPlan) setPlan(JSON.parse(savedPlan) as RoutePlan);
@@ -183,6 +205,38 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
 
   const openCustomers = useMemo(() => customers.filter(isOpen), [customers]);
 
+  // 按区筛选后的待收账客户：选了区后任务页与路线都只看这个区
+  const zoneFilteredOpen = useMemo(
+    () =>
+      zoneFilter === "all"
+        ? openCustomers
+        : openCustomers.filter((c) =>
+            zoneFilter === "none" ? c.zone_id == null : c.zone_id === zoneFilter,
+          ),
+    [openCustomers, zoneFilter],
+  );
+
+  // 一键重新自动分区：把所有已定位客户归入最近的区
+  const reclassifyAll = useCallback(async () => {
+    if (zones.length === 0) {
+      toast.info("请先添加区（如东区、南区），再自动分区。");
+      return;
+    }
+    const targets = customers.filter((c) => c.lat != null && c.lng != null);
+    const updates = targets
+      .map((c) => ({ c, z: nearestZone(zones, c.lat as number, c.lng as number) }))
+      .filter(({ c, z }) => (z?._row_id ?? null) !== (c.zone_id ?? null));
+    if (updates.length > 0) {
+      await Promise.all(
+        updates.map(({ c, z }) => updateCustomer(c._row_id, { zone_id: z?._row_id ?? null })),
+      );
+      await refresh();
+      toast.success(`已自动分区 ${updates.length} 位客户。`);
+    } else {
+      toast.info("分区已是最新，无需调整。");
+    }
+  }, [customers, refresh, zones]);
+
   // 路线计划自动跟随任务清单：客户完成/删除/收工归档后，
   // 剔除对应路段并重算总量；一个不剩则清空计划（首页预计距离/时间归零）。
   useEffect(() => {
@@ -198,10 +252,10 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
       toast.error("请先获取当前位置或设置大本营。");
       return;
     }
-    const stops = openCustomers.filter((c) => c.lat != null && c.lng != null);
+    const stops = zoneFilteredOpen.filter((c) => c.lat != null && c.lng != null);
     if (stops.length === 0) {
-      setPlanError("没有已定位的未完成客户，无法规划路线。");
-      toast.error("没有已定位的未完成客户。");
+      setPlanError(zoneFilter === "all" ? "没有已定位的未完成客户，无法规划路线。" : "这个区没有已定位的待收账客户。");
+      toast.error(zoneFilter === "all" ? "没有已定位的未完成客户。" : "这个区没有待收账客户。");
       return;
     }
     setPlanning(true);
@@ -244,7 +298,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     } finally {
       setPlanning(false);
     }
-  }, [base, mode, openCustomers, persistPlan, position, refresh]);
+  }, [base, mode, zoneFilteredOpen, persistPlan, position, refresh]);
 
   const endDay = useCallback(async () => {
     const finished = customers.filter((c) => !isOpen(c));
@@ -332,6 +386,12 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     base,
     reloadBase,
     history,
+    zones,
+    reloadZones,
+    zoneFilter,
+    setZoneFilter,
+    zoneFilteredOpen,
+    reclassifyAll,
     loading,
     position,
     positionLabel,

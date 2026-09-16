@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { haversineKm, isOpen, km, mins, money, STATUS_LABELS, restoreSavedPosition, syncPlanToOpenCustomers } from "./types";
-import type { Customer } from "./types";
+import { haversineKm, isOpen, km, mins, money, nearestZone, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers } from "./types";
+import type { Customer, Zone } from "./types";
 
 function make(partial: Partial<Customer>): Customer {
   return {
@@ -18,6 +18,7 @@ function make(partial: Partial<Customer>): Customer {
     task_date: "2026-09-14",
     route_order: null,
     pinned_next: 0,
+    zone_id: null,
     completed_at: null,
     collected_amount: null,
     archived: 0,
@@ -114,6 +115,28 @@ describe("路线计划随任务清单同步", () => {
 
   it("清单没变时原样返回同一对象", () => {
     expect(syncPlanToOpenCustomers(plan, [1, 2])).toBe(plan);
+  });
+});
+
+// @kliv-spec-derived — 用户要求：录入客户后按地址自动归入最近的区
+describe("自动分区", () => {
+  const zones: Zone[] = [
+    { _row_id: 1, name: "东区", address: "Taman Molek", lat: 1.5285, lng: 103.7908 },
+    { _row_id: 2, name: "南区", address: "Permas Jaya", lat: 1.45, lng: 103.75 },
+    { _row_id: 3, name: "无坐标区", address: "x", lat: null, lng: null },
+  ];
+
+  it("东边的客户归入东区，南边的归入南区", () => {
+    expect(nearestZone(zones, 1.52, 103.78)?.name).toBe("东区");
+    expect(nearestZone(zones, 1.46, 103.76)?.name).toBe("南区");
+  });
+
+  it("离所有区都很远则不归入任何区", () => {
+    expect(nearestZone(zones, 2.5, 104.5)).toBeNull();
+  });
+
+  it("没有区时返回 null", () => {
+    expect(nearestZone([], 1.5, 103.7)).toBeNull();
   });
 });
 

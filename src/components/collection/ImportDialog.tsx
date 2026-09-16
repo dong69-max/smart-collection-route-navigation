@@ -13,7 +13,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { errorText, geocodeAddresses, insertCustomer } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
-import { todayKey } from "@/lib/collection/types";
+import { nearestZone, todayKey } from "@/lib/collection/types";
 
 interface Row {
   name: string;
@@ -39,7 +39,7 @@ export function ImportDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { refresh } = useCollection();
+  const { refresh, zones } = useCollection();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -101,6 +101,9 @@ export function ImportDialog({
           const row = chunk[j];
           const hit = res.results[j];
           try {
+            const zone = hit?.ok && hit.lat != null && hit.lng != null
+              ? nearestZone(zones, hit.lat, hit.lng as number)
+              : null;
             await insertCustomer({
               name: row.name,
               phone: row.phone || null,
@@ -113,6 +116,7 @@ export function ImportDialog({
               status: "pending",
               notes: row.notes || null,
               task_date: todayKey(),
+              zone_id: zone?._row_id ?? null,
             });
             if (hit?.ok) ok++;
             else failed.push(`${row.name} — ${hit?.error ?? "无法定位"}`);

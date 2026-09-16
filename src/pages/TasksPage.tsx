@@ -22,13 +22,14 @@ const FILTERS: Array<{ id: string; label: string }> = [
 ];
 
 export default function TasksPage() {
-  const { customers, refresh, setNextStop } = useCollection();
+  const { customers, refresh, setNextStop, zones, zoneFilter, setZoneFilter } = useCollection();
   const [filter, setFilter] = useState("all");
   const [q, setQ] = useState("");
   const [complete, setComplete] = useState<Customer | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
   const done = customers.filter((c) => !isOpen(c)).length;
+  const hasUnzoned = customers.some((c) => c.zone_id == null);
 
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -39,11 +40,18 @@ export default function TasksPage() {
         (c.phone ?? "").toLowerCase().includes(term) ||
         c.address.toLowerCase().includes(term);
       if (!matchQ) return false;
+      const inZone =
+        zoneFilter === "all"
+          ? true
+          : zoneFilter === "none"
+            ? c.zone_id == null
+            : c.zone_id === zoneFilter;
+      if (!inZone) return false;
       if (filter === "all") return true;
       if (filter === "done") return c.status === "done";
       return c.status === (filter as TaskStatus);
     });
-  }, [customers, filter, q]);
+  }, [customers, filter, q, zoneFilter]);
 
   const remove = async (id: number) => {
     try {
@@ -97,6 +105,40 @@ export default function TasksPage() {
         ))}
       </div>
 
+      {zones.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto px-4 pb-3">
+          <button
+            onClick={() => setZoneFilter("all")}
+            className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium ${
+              zoneFilter === "all" ? "border-indigo-600 bg-indigo-600 text-white" : "border-indigo-200 bg-white text-indigo-700"
+            }`}
+          >
+            全部地区
+          </button>
+          {zones.map((z) => (
+            <button
+              key={z._row_id}
+              onClick={() => setZoneFilter(z._row_id)}
+              className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium ${
+                zoneFilter === z._row_id ? "border-indigo-600 bg-indigo-600 text-white" : "border-indigo-200 bg-white text-indigo-700"
+              }`}
+            >
+              {z.name}
+            </button>
+          ))}
+          {hasUnzoned && (
+            <button
+              onClick={() => setZoneFilter("none")}
+              className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium ${
+                zoneFilter === "none" ? "border-indigo-600 bg-indigo-600 text-white" : "border-indigo-200 bg-white text-indigo-700"
+              }`}
+            >
+              未分区
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="space-y-3 px-4 pb-6">
         {list.length === 0 && (
           <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500">没有匹配的客户。</p>
@@ -105,6 +147,7 @@ export default function TasksPage() {
           <CustomerCard
             key={c._row_id}
             customer={c}
+            zoneName={c.zone_id != null ? zones.find((z) => z._row_id === c.zone_id)?.name ?? null : null}
             onComplete={setComplete}
             onSetNext={(x) => void setNextStop(x._row_id)}
             onDelete={(x) => void remove(x._row_id)}
