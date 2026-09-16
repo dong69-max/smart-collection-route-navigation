@@ -145,14 +145,14 @@ export default function TasksPage() {
                 size="sm"
                 variant="destructive"
                 onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
-              >
+               className="text-lg">
                 {selectMode ? "退出多选" : "多选"}
               </Button>
             )}
             {!selectMode && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="secondary">
+                  <Button size="sm" variant="secondary" className="text-lg">
                     <Plus className="mr-1 h-4 w-4" />
                     添加
                     <ChevronDown className="ml-0.5 h-3.5 w-3.5" />

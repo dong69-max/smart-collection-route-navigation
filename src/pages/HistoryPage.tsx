@@ -106,7 +106,7 @@ export default function HistoryPage() {
               size="sm"
               variant="destructive"
               onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
-            >
+             className="text-lg">
               {selectMode ? "退出多选" : "多选"}
             </Button>
           )}
