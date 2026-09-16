@@ -15,6 +15,7 @@ import {
   listHistory,
   listZones,
   requestRoute,
+  saveSetting,
   updateCustomer,
 } from "./api";
 import {
@@ -76,9 +77,10 @@ import { BASE_KEY, parseBase, type Base } from "@/components/collection/BaseDial
 
 const CollectionContext = createContext<Ctx | null>(null);
 
-const PLAN_KEY = "collection_route_plan";
+// 位置图钉是设备私有的，存本地；路线计划与今日目标区存服务器，所有同事共享
 const POS_KEY = "collection_last_position";
-const TODAY_ZONE_KEY = "collection_today_zone";
+const SHARED_PLAN_KEY = "collection_route_plan";
+const SHARED_TZ_KEY = "collection_today_zone";
 
 export function CollectionProvider({ children }: { children: ReactNode }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -125,13 +127,44 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // 从服务器读共享的路线计划：同事优化好的路线这里自动拿到
+  const loadSharedPlan = useCallback(async () => {
+    try {
+      const raw = await getSetting(SHARED_PLAN_KEY);
+      if (!raw) {
+        setPlan((cur) => (cur === null ? cur : null));
+        return;
+      }
+      const p = JSON.parse(raw) as RoutePlan;
+      // 只有服务器上的版本比本地新（createdAt 不同）才替换，避免覆盖刚规划的结果
+      setPlan((cur) => (cur?.createdAt === p.createdAt ? cur : p));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const loadSharedTodayZone = useCallback(async () => {
+    try {
+      const raw = await getSetting(SHARED_TZ_KEY);
+      const tz = parseTodayZone(raw, todayKey());
+      setTodayZone((cur) => {
+        if (tz && cur?.date === tz.date && cur?.zoneId === tz.zoneId) return cur;
+        if (!tz && cur === null) return cur;
+        if (tz) setZoneFilter(tz.zoneId);
+        return tz;
+      });
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   useEffect(() => {
     void refresh();
     void reloadBase();
     void reloadZones();
+    void loadSharedPlan();
+    void loadSharedTodayZone();
     try {
-      const savedPlan = localStorage.getItem(PLAN_KEY);
-      if (savedPlan) setPlan(JSON.parse(savedPlan) as RoutePlan);
       const savedPos = localStorage.getItem(POS_KEY);
       const restored = restoreSavedPosition(savedPos);
       if (restored) {
@@ -141,21 +174,39 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
         // 上次定位已过期（超过 3 小时）：丢弃，不再显示旧图钉
         localStorage.removeItem(POS_KEY);
       }
-      const savedTz = parseTodayZone(localStorage.getItem(TODAY_ZONE_KEY), todayKey());
-      if (savedTz) {
-        // 今天的收账目标区还在：恢复它，并让路线页自动选回这个区
-        setTodayZone(savedTz);
-        setZoneFilter(savedTz.zoneId);
-      }
     } catch {
       /* ignore */
     }
-  }, [refresh]);
+  }, [refresh, reloadBase, reloadZones, loadSharedPlan, loadSharedTodayZone]);
 
+  // 自动同步：每 10 秒拉一次共享数据，切回手机页面时也立即刷，同事的改动几秒内就能看到
+  useEffect(() => {
+    const sync = () => {
+      void refresh();
+      void reloadBase();
+      void reloadZones();
+      void loadSharedPlan();
+      void loadSharedTodayZone();
+    };
+    const timer = setInterval(sync, 10_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") sync();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [refresh, reloadBase, reloadZones, loadSharedPlan, loadSharedTodayZone]);
+
+  // 路线计划存服务器：任何同事优化好路线，其他人几秒内自动同步
   const persistPlan = useCallback((p: RoutePlan | null) => {
     setPlan(p);
-    if (p) localStorage.setItem(PLAN_KEY, JSON.stringify(p));
-    else localStorage.removeItem(PLAN_KEY);
+    void saveSetting(SHARED_PLAN_KEY, p ? JSON.stringify(p) : "").catch(() => {
+      /* 忽略共享保存失败，本地仍可继续用 */
+    });
   }, []);
 
   const persistPosition = useCallback((c: Coords, label: string) => {
@@ -311,10 +362,10 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
         createdAt: Date.now(),
       };
       persistPlan(newPlan);
-      // 记住今天的收账目标区：路线页按区规划后，首页显示「今日目标」并同步统计
+      // 记住今天的收账目标区（存服务器，同事同步）：路线页按区规划后，首页显示「今日目标」
       if (zoneFilter === "all") {
         setTodayZone(null);
-        localStorage.removeItem(TODAY_ZONE_KEY);
+        void saveSetting(SHARED_TZ_KEY, "").catch(() => {});
       } else {
         const tz: TodayZone = {
           zoneId: zoneFilter as number | "none",
@@ -325,7 +376,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
           date: todayKey(),
         };
         setTodayZone(tz);
-        localStorage.setItem(TODAY_ZONE_KEY, JSON.stringify(tz));
+        void saveSetting(SHARED_TZ_KEY, JSON.stringify(tz)).catch(() => {});
       }
       await Promise.all(
         res.legs.map((leg, i) => updateCustomer(leg.id, { route_order: i + 1 })),
