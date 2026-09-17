@@ -14,18 +14,20 @@ export interface NavTarget {
   lng: number | null;
 }
 
-export function openGoogleMaps(c: NavTarget) {
+export function openGoogleMaps(c: NavTarget, byCoords = false) {
+  // 默认传地址原文，让 Google 用自家高精度数据解析——与用户自己在 Google Maps 输入地址结果一致；
+  // 仅在用户明确选坐标回退时才传 lat,lng（免费引擎的坐标有误差，不作首选）
   const dest =
-    c.lat != null && c.lng != null ? `${c.lat},${c.lng}` : encodeURIComponent(c.address);
+    byCoords && c.lat != null && c.lng != null ? `${c.lat},${c.lng}` : encodeURIComponent(c.address);
   window.open(
     `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`,
     "_blank",
   );
 }
 
-export function openWaze(c: NavTarget) {
+export function openWaze(c: NavTarget, byCoords = false) {
   const dest =
-    c.lat != null && c.lng != null ? `ll=${c.lat},${c.lng}` : `q=${encodeURIComponent(c.address)}`;
+    byCoords && c.lat != null && c.lng != null ? `ll=${c.lat},${c.lng}` : `q=${encodeURIComponent(c.address)}`;
   window.open(`https://waze.com/ul?${dest}&navigate=yes`, "_blank");
 }
 
@@ -48,6 +50,7 @@ export function NavigationChooserDialog({
             {customer.name} · {customer.address}
           </DialogDescription>
         </DialogHeader>
+        <p className="text-xs text-slate-500">按地址导航（与你自己往 Google Maps 输入地址一致，最准）。</p>
         <div className="grid gap-2">
           <Button
             className="h-16 justify-center text-lg"
@@ -66,6 +69,16 @@ export function NavigationChooserDialog({
             }}
           >
             🚗 Waze
+          </Button>
+          <Button
+            variant="ghost"
+            className="h-11 justify-center text-sm text-slate-500"
+            onClick={() => {
+              openGoogleMaps(customer, true);
+              onOpenChange(false);
+            }}
+          >
+            地址找不到？改用图钉坐标导航
           </Button>
         </div>
       </DialogContent>

@@ -239,7 +239,7 @@ export default function RoutePage() {
                   className="mt-2 h-11 w-full"
                   onClick={() =>
                     window.open(
-                      `https://www.google.com/maps/dir/?api=1&destination=${base.lat},${base.lng}&travelmode=driving`,
+                      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(base.address)}&travelmode=driving`,
                       "_blank",
                     )
                   }
