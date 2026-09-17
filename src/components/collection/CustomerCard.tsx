@@ -1,4 +1,4 @@
-import { CheckCircle2, EyeOff, MapPin, Navigation, Phone, Star, Trash2 } from "lucide-react";
+import { CheckCircle2, EyeOff, MapPin, Navigation, Pencil, Phone, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ export function CustomerCard({
   onComplete,
   onHide,
   onDelete,
+  onEdit,
 }: {
   customer: Customer;
   index?: number;
@@ -31,6 +32,7 @@ export function CustomerCard({
   onComplete?: (c: Customer) => void;
   onHide?: (c: Customer) => void;
   onDelete?: (c: Customer) => void;
+  onEdit?: (c: Customer) => void;
 }) {
   const [navOpen, setNavOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
@@ -98,6 +100,12 @@ export function CustomerCard({
         )}
       </div>
       <div className="mt-2 flex gap-2">
+        {onEdit && (
+          <Button variant="ghost" size="sm" className="flex-1 text-sky-600" onClick={() => onEdit(customer)}>
+            <Pencil className="mr-1 h-4 w-4" />
+            编辑 / 修正位置
+          </Button>
+        )}
         {open && onHide && (
           <Button variant="ghost" size="sm" className="flex-1 text-slate-500" onClick={() => onHide(customer)}>
             <EyeOff className="mr-1 h-4 w-4" />

@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Brain, Crosshair, Home, PartyPopper, RotateCcw } fr
 import { Button } from "@/components/ui/button";
 import { CustomerCard } from "@/components/collection/CustomerCard";
 import { CompleteTaskDialog } from "@/components/collection/CompleteTaskDialog";
+import { CustomerFormDialog } from "@/components/collection/CustomerFormDialog";
 import { RouteMap } from "@/components/collection/RouteMap";
 import { deleteCustomer, errorText } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
@@ -38,6 +39,7 @@ export default function RoutePage() {
     setZoneFilter,
   } = useCollection();
   const [complete, setComplete] = useState<Customer | null>(null);
+  const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
 
   const legById = new Map((plan?.legs ?? []).map((l) => [l.id, l]));
 
@@ -200,6 +202,7 @@ export default function RoutePage() {
                 legText={leg ? `${km(leg.distance_m)} · 约 ${mins(leg.duration_s)}` : undefined}
                 zoneName={c.zone_id != null ? zones.find((z) => z._row_id === c.zone_id)?.name ?? null : null}
                 onComplete={setComplete}
+                onEdit={(x) => setEditCustomer(x)}
                 onHide={(x) => void hideCustomer(x._row_id)}
                 onDelete={(x) => void remove(x)}
               />
@@ -253,6 +256,11 @@ export default function RoutePage() {
         customer={complete}
         open={complete !== null}
         onOpenChange={(v) => !v && setComplete(null)}
+      />
+      <CustomerFormDialog
+        open={editCustomer !== null}
+        onOpenChange={(v) => !v && setEditCustomer(null)}
+        editCustomer={editCustomer}
       />
     </div>
   );

@@ -45,6 +45,7 @@ export default function TasksPage() {
   const [q, setQ] = useState("");
   const [complete, setComplete] = useState<Customer | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   // 多选批量删除
@@ -295,6 +296,7 @@ export default function TasksPage() {
               customer={c}
               zoneName={c.zone_id != null ? zones.find((z) => z._row_id === c.zone_id)?.name ?? null : null}
               onComplete={setComplete}
+              onEdit={(x) => setEditCustomer(x)}
               onHide={(x) => void hideCustomer(x._row_id)}
               onDelete={(x) => void remove(x._row_id)}
             />
@@ -370,6 +372,11 @@ export default function TasksPage() {
       </AlertDialog>
 
       <CustomerFormDialog open={addOpen} onOpenChange={setAddOpen} />
+      <CustomerFormDialog
+        open={editCustomer !== null}
+        onOpenChange={(v) => !v && setEditCustomer(null)}
+        editCustomer={editCustomer}
+      />
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
       <LetterScanDialog open={scanOpen} onOpenChange={setScanOpen} />
       <CompleteTaskDialog
