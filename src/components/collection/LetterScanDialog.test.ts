@@ -44,6 +44,27 @@ describe("信件文字解析", () => {
     expect(r!.name).toContain("TEGAS");
   });
 
+  it("OCR 把 TO 认成 T0 也能解析", () => {
+    const text = [
+      "T0: MOHD HAFIZ BIN MUHAMAD",
+      "22, Jalan Bukit Kempas 5,",
+      "Taman Bukit Kempas, 81200 Johor Bahru, Johor",
+    ].join("\n");
+    expect(parseLetterText(text)!.name.toUpperCase()).toContain("MOHD HAFIZ");
+  });
+
+  it("OCR 把 Remark 认成 RERNARK 的公司信也能解析", () => {
+    const co = [
+      "TEGAS SECURITY SERVICES SDN BHD",
+      "18-01, JALAN TITIWANGSA 3/2, TAMAN TAMPOI INDAH, 81200 JOHOR BAHRU",
+      "RERNARK: MUHAMMAD RIDZUAN BIN ABDULLAH",
+    ].join("\n");
+    const rc = parseLetterText(co);
+    expect(rc!.isCompany).toBe(true);
+    expect(rc!.name).toContain("TEGAS");
+    expect(rc!.address.toUpperCase()).toContain("TITIWANGSA");
+  });
+
   it("小写 to: 也认得出", () => {
     const r = parseLetterText("to: Ali Bin Abu\n12, Jalan Molek 3, Taman Molek");
     expect(r!.isCompany).toBe(false);
