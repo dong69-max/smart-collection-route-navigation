@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { errorText, geocodeAddresses, insertCustomer } from "@/lib/collection/api";
+import { errorText, geocodeAddresses, insertCustomer, type GeocodeHit } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
 import { assignZone, isDuplicateCustomer, todayKey, type Customer } from "@/lib/collection/types";
 
@@ -30,6 +30,26 @@ function pick(row: Record<string, unknown>, keys: string[]) {
     if (keys.includes(norm)) return String(row[k] ?? "").trim();
   }
   return "";
+}
+
+// 定位一批地址：整批超时就退回逐个查，任何一位失败都不中断整个导入。
+// （服务器 30 秒硬超时，一次最多可靠处理 4 个地址）
+async function geocodeSafe(addrs: string[]): Promise<Array<GeocodeHit | null>> {
+  try {
+    const r = await geocodeAddresses(addrs);
+    return r.results;
+  } catch {
+    const out: Array<GeocodeHit | null> = [];
+    for (const a of addrs) {
+      try {
+        const r = await geocodeAddresses([a]);
+        out.push(r.results[0] ?? null);
+      } catch {
+        out.push(null);
+      }
+    }
+    return out;
+  }
 }
 
 export function ImportDialog({
@@ -74,13 +94,20 @@ export function ImportDialog({
       const rows: Row[] = raw
         .map((r) => {
           const prio = pick(r, ["priority", "优先级"]).toLowerCase();
+          let amount = Number(pick(r, ["outstanding amount", "amount", "欠款金额"]) || 0);
+          let notes = pick(r, ["notes", "备注"]);
+          // 用户常把欠款金额填在备注列（金额列为空）：备注是纯数字就当金额用
+          if (!amount && notes && /^\d+(\.\d+)?$/.test(notes)) {
+            amount = Number(notes);
+            notes = "";
+          }
           return {
             name: pick(r, ["customer name", "name", "客户姓名", "姓名"]),
             phone: pick(r, ["phone", "电话", "电话号码"]),
             address: pick(r, ["address", "地址"]),
-            amount: Number(pick(r, ["outstanding amount", "amount", "欠款金额"]) || 0),
+            amount,
             priority: prio.startsWith("h") || prio === "高" || prio === "1" ? 1 : prio.startsWith("l") || prio === "低" || prio === "3" ? 3 : 2,
-            notes: pick(r, ["notes", "备注"]),
+            notes,
           };
         })
         .filter((r) => r.name && r.address);
@@ -97,10 +124,10 @@ export function ImportDialog({
       // 重复检测基准：已入库的客户 + 本次文件里已添加过的（防止文件内自重复）。
       // 只有同名+同地址才算重复；同名不同地址（两间家）照常添加。
       const seen: Array<Pick<Customer, "name" | "address">> = [...customers];
-      const chunkSize = 10;
+      const chunkSize = 4;
       for (let i = 0; i < rows.length; i += chunkSize) {
         const chunk = rows.slice(i, i + chunkSize);
-        const res = await geocodeAddresses(chunk.map((r) => r.address));
+        const hits = await geocodeSafe(chunk.map((r) => r.address));
         for (let j = 0; j < chunk.length; j++) {
           const row = chunk[j];
           if (isDuplicateCustomer(row.name, row.address, seen)) {
@@ -108,7 +135,7 @@ export function ImportDialog({
             continue;
           }
           seen.push({ name: row.name, address: row.address });
-          const hit = res.results[j];
+          const hit = hits[j] ?? undefined;
           try {
             const zone = hit?.ok && hit.lat != null && hit.lng != null
               ? assignZone(zones, row.address, hit.lat, hit.lng as number)
@@ -182,7 +209,7 @@ export function ImportDialog({
               {summary.skipped.length > 0 && (
                 <p className="font-semibold text-slate-500">跳过重复：{summary.skipped.length}</p>
               )}
-              <p className="font-semibold text-amber-700">需要检查：{summary.failed.length}</p>
+              <p className="font-semibold text-amber-700">已添加但未定位：{summary.failed.length}</p>
               {summary.skipped.length > 0 && (
                 <ul className="max-h-40 list-disc space-y-1 overflow-y-auto pl-5 text-xs text-slate-500">
                   {summary.skipped.map((s, i) => (
@@ -193,7 +220,7 @@ export function ImportDialog({
               {summary.failed.length > 0 && (
                 <ul className="max-h-40 list-disc space-y-1 overflow-y-auto pl-5 text-xs text-slate-600">
                   {summary.failed.map((f, i) => (
-                    <li key={i}>{f}</li>
+                    <li key={i}>{f}（已入库；导航不受影响，图钉稍后可在编辑里修正）</li>
                   ))}
                 </ul>
               )}
