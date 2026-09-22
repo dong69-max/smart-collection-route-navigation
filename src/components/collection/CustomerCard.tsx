@@ -72,7 +72,7 @@ export function CustomerCard({
             )}
           </div>
           {customer.notes && (
-            <p className="mt-1 line-clamp-2 text-xs text-slate-400">备注：{customer.notes}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-slate-400">备注：{customer.notes}</p>
           )}
         </div>
       </div>
