@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { assignZone, displaySeq, groupSameSpot, haversineKm, isDuplicateCustomer, isOpen, isShown, km, matchZoneByAddress, mins, money, nearestZone, normalizeAddress, parseTodayZone, pointInPolygon, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers, zoneKeywords, zonePolygon } from "./types";
+import { assignZone, buildShareText, displaySeq, groupSameSpot, haversineKm, isDuplicateCustomer, isOpen, isShown, km, matchZoneByAddress, mins, money, nearestZone, normalizeAddress, parseHistoryPhotos, parseTodayZone, pointInPolygon, restoreSavedPosition, STATUS_LABELS, syncPlanToOpenCustomers, zoneKeywords, zonePolygon } from "./types";
 import type { Customer, Zone } from "./types";
 
 function make(partial: Partial<Customer>): Customer {
@@ -372,5 +372,59 @@ describe("重复客户检测", () => {
     expect(parseTodayZone(null, "2026-09-16")).toBeNull();
     expect(parseTodayZone("坏json", "2026-09-16")).toBeNull();
     expect(parseTodayZone(JSON.stringify({ zoneId: 2, name: "西区", date: "2026-09-16", extra: 1 }), "2026-09-16")?.name).toBe("西区");
+  });
+});
+
+// ---- 拜访照片解析 ----
+
+describe("拜访照片解析", () => {
+  it("正常解析照片路径数组", () => {
+    expect(parseHistoryPhotos({ photos: JSON.stringify(["/content/visits/a.jpg", "/content/visits/b.jpg"]) })).toEqual([
+      "/content/visits/a.jpg",
+      "/content/visits/b.jpg",
+    ]);
+  });
+
+  it("空值、坏 JSON、非数组都当没有照片", () => {
+    expect(parseHistoryPhotos({ photos: null })).toEqual([]);
+    expect(parseHistoryPhotos({ photos: "坏json" })).toEqual([]);
+    expect(parseHistoryPhotos({ photos: JSON.stringify({ a: 1 }) })).toEqual([]);
+    expect(parseHistoryPhotos({ photos: JSON.stringify([1, null, "ok.jpg"]) })).toEqual(["ok.jpg"]);
+  });
+});
+
+// ---- 分享文字 ----
+
+describe("分享文字（交差摘要）", () => {
+  // @kliv-spec-derived — 用户要求：每到一个地方拍照+文字记录情况以便交差，分享内容要含客户、结果、金额、备注、地址
+  it("包含客户、结果、收款、备注和地址", () => {
+    const text = buildShareText({
+      name: "Ahmad",
+      address: "Taman Molek, Johor Bahru",
+      resultLabel: "已收款",
+      collected: 1200,
+      notes: "家里没人，邻居说下午在",
+      at: new Date(2026, 8, 22, 15, 40),
+    });
+    expect(text).toContain("客户：Ahmad");
+    expect(text).toContain("结果：已收款");
+    expect(text).toContain("收款：RM 1200.00");
+    expect(text).toContain("备注：家里没人");
+    expect(text).toContain("地址：Taman Molek, Johor Bahru");
+    expect(text).toContain("2026-09-22 15:40");
+  });
+
+  it("没收款、没备注时不出现对应行", () => {
+    const text = buildShareText({
+      name: "Lim",
+      address: "Permas Jaya",
+      resultLabel: "找不到人（需再次回访）",
+      collected: 0,
+      notes: "",
+      at: new Date(2026, 8, 22, 9, 5),
+    });
+    expect(text).not.toContain("收款");
+    expect(text).not.toContain("备注");
+    expect(text).toContain("需再次回访");
   });
 });

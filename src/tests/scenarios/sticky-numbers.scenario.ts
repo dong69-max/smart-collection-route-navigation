@@ -83,6 +83,9 @@ scenario(
       await page.getByRole("button", { name: "完成任务" }).first().click();
       await expect(page.getByText("收账结果")).toBeVisible();
       await page.getByRole("button", { name: "确认完成" }).click();
+      // 完成后先停在分享页（交差用），点「完成」关掉
+      await expect(page.getByText("已完成 ✅")).toBeVisible();
+      await page.getByRole("button", { name: "完成", exact: true }).click();
       await expect(page.getByText("陈一")).not.toBeVisible();
     });
 

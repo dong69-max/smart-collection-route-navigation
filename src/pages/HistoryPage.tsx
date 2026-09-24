@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteHistory, errorText } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
-import { money, type HistoryRow } from "@/lib/collection/types";
+import { money, parseHistoryPhotos, type HistoryRow } from "@/lib/collection/types";
 
 function fmt(ts: number | null) {
   if (!ts) return "—";
@@ -177,7 +177,20 @@ export default function HistoryPage() {
                   <p className="text-sm font-semibold text-emerald-600">
                     收款：{money(h.collected_amount)}
                   </p>
-                  {h.notes && <p className="mt-1 text-xs text-slate-500">备注：{h.notes}</p>}
+                  {h.notes && <p className="mt-1 text-sm text-slate-500">备注：{h.notes}</p>}
+                  {parseHistoryPhotos(h).length > 0 && (
+                    <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                      {parseHistoryPhotos(h).map((p, i) => (
+                        <img
+                          key={`${h._row_id}-${i}`}
+                          src={`${p}?w=200`}
+                          alt={`${h.customer_name ?? "客户"} 照片 ${i + 1}`}
+                          className="h-20 w-20 shrink-0 cursor-pointer rounded-lg border border-slate-200 object-cover"
+                          onClick={() => window.open(`${p}?w=800`, "_blank")}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               {!selectMode && (

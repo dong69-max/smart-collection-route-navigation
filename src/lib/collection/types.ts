@@ -41,6 +41,40 @@ export interface HistoryRow {
   lat: number | null;
   lng: number | null;
   recorded_at: number | null;
+  photos: string | null;
+}
+
+// 拜访照片存的是 JSON 字符串数组（照片路径）；坏数据当作没有照片
+export function parseHistoryPhotos(row: Pick<HistoryRow, "photos">): string[] {
+  if (!row.photos) return [];
+  try {
+    const arr = JSON.parse(row.photos) as unknown;
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((p): p is string => typeof p === "string" && p.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+export interface ShareVisitInfo {
+  name: string;
+  address: string;
+  resultLabel: string;
+  collected: number;
+  notes: string;
+  at: Date;
+}
+
+// 生成发到微信/WhatsApp 的交差摘要
+export function buildShareText(v: ShareVisitInfo): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const t = v.at;
+  const time = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}`;
+  const lines = [`📋 收账记录 · ${time}`, `客户：${v.name}`, `结果：${v.resultLabel}`];
+  if (v.collected > 0) lines.push(`收款：RM ${v.collected.toFixed(2)}`);
+  if (v.notes) lines.push(`备注：${v.notes}`);
+  lines.push(`地址：${v.address}`);
+  return lines.join("\n");
 }
 
 export interface RouteLeg {
