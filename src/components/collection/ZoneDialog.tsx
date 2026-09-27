@@ -246,7 +246,7 @@ export function ZoneDialog({
                       ) : (
                         editingPoly?._row_id !== z._row_id &&
                         kws.length > 0 && (
-                          <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-stone-950">
                             包含：{kws.join("、")}
                           </p>
                         )
