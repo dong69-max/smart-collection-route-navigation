@@ -67,7 +67,7 @@ export function CustomerCard({
           <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t border-slate-100 pt-2.5">
             <span className="text-base font-extrabold tabular-nums text-rose-600">{money(customer.amount)}</span>
             {customer.pinned_next === 1 && <Badge className="bg-sky-100 text-sky-700">下一站</Badge>}
-            {zoneName && <Badge className="bg-slate-100 text-slate-500">{zoneName}</Badge>}
+            {zoneName && <Badge className="bg-primary text-slate-50">{zoneName}</Badge>}
             {customer.geo_status === "approximate" && (
               <Badge
                 variant="outline"
