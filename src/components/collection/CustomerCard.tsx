@@ -38,7 +38,7 @@ export function CustomerCard({
   const [delOpen, setDelOpen] = useState(false);
   const open = ["pending", "in_progress"].includes(customer.status);
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-2 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <div className="rounded-2xl border border-slate-200/90 bg-white p-2 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ">
       <div className="flex items-start gap-3">
         {index != null && (
           <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-sm font-extrabold text-white shadow-sm shadow-sky-600/30">
@@ -67,7 +67,7 @@ export function CustomerCard({
           <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t border-slate-100 pt-2.5">
             <span className="text-base font-extrabold tabular-nums text-rose-600">{money(customer.amount)}</span>
             {customer.pinned_next === 1 && <Badge className="bg-sky-100 text-sky-700">下一站</Badge>}
-            {zoneName && <Badge variant="outline" className="border-slate-200 text-slate-500">{zoneName}</Badge>}
+            {zoneName && <Badge variant="outline" className="border-slate-200 text-slate-50 bg-primary">{zoneName}</Badge>}
             {customer.geo_status === "approximate" && (
               <Badge
                 variant="outline"
