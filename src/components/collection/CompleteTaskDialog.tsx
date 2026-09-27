@@ -78,15 +78,12 @@ export function CompleteTaskDialog({
   if (!customer) return null;
 
   const addPhotos = (files: FileList | null) => {
-    if (!files) return;
-    setPhotos((prev) => {
-      const next = [...prev];
-      for (const f of Array.from(files)) {
-        if (!f.type.startsWith("image/")) continue;
-        next.push({ file: f, url: URL.createObjectURL(f) });
-      }
-      return next;
-    });
+    // FileList 是「活引用」：事件回调结束后再读就已被清空，
+    // 所以必须在这里同步把文件取出来，再交给状态更新
+    const picked = Array.from(files ?? []).filter((f) => f.type.startsWith("image/"));
+    if (picked.length === 0) return;
+    const items = picked.map((f) => ({ file: f, url: URL.createObjectURL(f) }));
+    setPhotos((prev) => [...prev, ...items]);
   };
 
   const removePhoto = (i: number) => {
