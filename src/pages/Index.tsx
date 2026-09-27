@@ -214,12 +214,12 @@ export default function Index() {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" className="h-11 text-sm font-semibold" onClick={() => setBaseOpen(true)}>
+          <Button variant="outline" className="h-12 text-base font-semibold" onClick={() => setBaseOpen(true)}>
             🏠 设置大本营
           </Button>
           <Button
             variant="outline"
-            className="h-11 text-sm font-semibold text-indigo-700"
+            className="h-12 text-base font-semibold text-indigo-700"
             onClick={() => setZoneOpen(true)}
           >
             🗺️ 分区管理
@@ -276,11 +276,11 @@ export default function Index() {
               <p className="mt-2 text-base font-extrabold tabular-nums text-rose-600">
                 {money(orderedOpen[0].amount)}
               </p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button className="h-12" onClick={() => setNavCustomer(orderedOpen[0])}>
+              <div className="mt-3 grid grid-cols-2 gap-2.5">
+                <Button className="h-13 text-lg font-semibold" onClick={() => setNavCustomer(orderedOpen[0])}>
                   开始导航
                 </Button>
-                <Button variant="outline" className="h-12" onClick={() => setComplete(orderedOpen[0])}>
+                <Button variant="outline" className="h-13 text-lg font-semibold" onClick={() => setComplete(orderedOpen[0])}>
                   完成任务
                 </Button>
               </div>

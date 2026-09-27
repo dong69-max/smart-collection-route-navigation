@@ -85,15 +85,15 @@ export function CustomerCard({
         </div>
       </div>
 
-      <div className="mt-3.5 grid grid-cols-2 gap-2">
-        <Button className="h-12 text-base font-semibold" onClick={() => setNavOpen(true)}>
+      <div className="mt-3.5 grid grid-cols-2 gap-2.5">
+        <Button className="h-13 text-lg font-semibold" onClick={() => setNavOpen(true)}>
           <Navigation className="mr-1.5 h-5 w-5" />
           开始导航
         </Button>
         {open && onComplete ? (
           <Button
             variant="outline"
-            className="h-12 border-emerald-200 text-base font-semibold text-emerald-700 hover:bg-emerald-50"
+            className="h-13 border-emerald-200 text-lg font-semibold text-emerald-700 hover:bg-emerald-50"
             onClick={() => onComplete(customer)}
           >
             <CheckCircle2 className="mr-1.5 h-5 w-5" />
@@ -102,7 +102,7 @@ export function CustomerCard({
         ) : (
           <Button
             variant="outline"
-            className="h-12 text-base font-semibold"
+            className="h-13 text-lg font-semibold"
             disabled={!customer.phone}
             onClick={() => customer.phone && window.open(`tel:${customer.phone}`)}
           >
@@ -112,12 +112,12 @@ export function CustomerCard({
         )}
       </div>
       {/* 低频操作收成一行小字，不再挤占主视线 */}
-      <div className="mt-1 flex gap-1">
+      <div className="mt-1.5 flex gap-1">
         {onEdit && (
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 flex-1 text-xs text-slate-500"
+            className="h-9 flex-1 text-[13px] text-slate-500"
             onClick={() => onEdit(customer)}
           >
             <Pencil className="mr-1 h-3.5 w-3.5" />
@@ -128,7 +128,7 @@ export function CustomerCard({
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 flex-1 text-xs text-slate-500"
+            className="h-9 flex-1 text-[13px] text-slate-500"
             onClick={() => onHide(customer)}
           >
             <EyeOff className="mr-1 h-3.5 w-3.5" />
@@ -139,7 +139,7 @@ export function CustomerCard({
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 flex-1 text-xs text-slate-500"
+            className="h-9 flex-1 text-[13px] text-slate-500"
             onClick={() => window.open(`tel:${customer.phone}`)}
           >
             <Phone className="mr-1 h-3.5 w-3.5" />
@@ -150,7 +150,7 @@ export function CustomerCard({
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 flex-1 text-xs text-rose-400 hover:text-rose-600"
+            className="h-9 flex-1 text-[13px] text-rose-400 hover:text-rose-600"
             onClick={() => setDelOpen(true)}
           >
             <Trash2 className="mr-1 h-3.5 w-3.5" />

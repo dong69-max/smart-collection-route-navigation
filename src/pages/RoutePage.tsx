@@ -159,13 +159,13 @@ export default function RoutePage() {
       </div>
 
       <div className="space-y-2 px-4 pt-4">
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" className="h-12" onClick={() => void locate()} disabled={locating}>
-            <Crosshair className="mr-1 h-4 w-4" />
+        <div className="grid grid-cols-2 gap-2.5">
+          <Button variant="outline" className="h-13 text-base font-semibold" onClick={() => void locate()} disabled={locating}>
+            <Crosshair className="mr-1 h-5 w-5" />
             {locating ? "定位中…" : "更新位置"}
           </Button>
-          <Button className="h-12 bg-slate-900 text-white hover:bg-slate-800" onClick={() => void planRoute()} disabled={planning}>
-            <Brain className="mr-1 h-4 w-4" />
+          <Button className="h-13 bg-slate-900 text-base font-semibold text-white hover:bg-slate-800" onClick={() => void planRoute()} disabled={planning}>
+            <Brain className="mr-1 h-5 w-5" />
             {planning ? "计算中…" : "智能规划"}
           </Button>
         </div>
@@ -212,7 +212,7 @@ export default function RoutePage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2.5 text-xs text-slate-500"
+                  className="h-9 px-3 text-[13px] text-slate-500"
                   onClick={() => void move(i, -1)}
                   disabled={i === 0}
                 >
@@ -222,7 +222,7 @@ export default function RoutePage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2.5 text-xs text-slate-500"
+                  className="h-9 px-3 text-[13px] text-slate-500"
                   onClick={() => void move(i, 1)}
                   disabled={i === visible.length - 1}
                 >
@@ -247,7 +247,7 @@ export default function RoutePage() {
                 </p>
                 <Button
                   variant="outline"
-                  className="mt-2 h-11 w-full"
+                  className="mt-2 h-13 w-full text-base font-semibold"
                   onClick={() =>
                     window.open(
                       `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(base.address)}&travelmode=driving`,
