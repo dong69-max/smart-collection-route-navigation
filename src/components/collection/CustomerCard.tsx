@@ -45,7 +45,7 @@ export function CustomerCard({
             {String(index).padStart(2, "0")}
           </span>
         )}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1   ">
           {/* 编号 + 名字：最醒目的一行 */}
           <div className="flex items-start gap-2">
             {customer.code && (

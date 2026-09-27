@@ -205,7 +205,7 @@ export default function RoutePage() {
         )}
       </div>
 
-      <div className="space-y-3 px-4 py-4">
+      <div className="space-y-3 px-4 py-4     ">
         {visible.length === 0 && (
           <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500">
             {zoneName ? "这个区没有待处理客户。" : "没有待处理客户。"}
@@ -225,7 +225,7 @@ export default function RoutePage() {
                 onHide={(x) => void hideCustomer(x._row_id)}
                 onDelete={(x) => void remove(x)}
               />
-              <div className="flex justify-end gap-1">
+              <div className="flex justify-end gap-1 text-stone-950  text-sm">
                 <Button
                   variant="ghost"
                   size="sm"
