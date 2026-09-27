@@ -18,6 +18,7 @@ import { content } from "@/lib/shared/kliv-content.js";
 import { errorText, insertHistory, updateCustomer } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
 import { STATUS_LABELS, buildShareText, type Customer, type TaskStatus } from "@/lib/collection/types";
+import { buildSummaryCardFile } from "./shareCard";
 
 const RESULTS: TaskStatus[] = [
   "done",
@@ -175,12 +176,26 @@ export function CompleteTaskDialog({
 
   const shareNative = async () => {
     if (!saved) return;
+    // 微信收图片时会丢掉文字（WhatsApp 正常）：先把文字复制到剪贴板，
+    // 再把文字做成一张摘要卡放在照片最前面，微信里内容就不会丢
+    try {
+      await navigator.clipboard.writeText(saved.text);
+    } catch {
+      // 没有剪贴板权限就算了，下面还有摘要卡兜底
+    }
     const nav = navigator as Navigator & { canShare?: (d: { files?: File[] }) => boolean };
     try {
       if (typeof nav.share === "function") {
-        // 手机上会弹出分享面板（微信/WhatsApp 都在里面），照片随文字一起发
-        if (saved.files.length > 0 && nav.canShare?.({ files: saved.files })) {
-          await nav.share({ text: saved.text, files: saved.files });
+        let files = saved.files;
+        if (files.length > 0) {
+          try {
+            files = [await buildSummaryCardFile(saved.text), ...files];
+          } catch {
+            // 摘要卡生成失败就只发原照片
+          }
+        }
+        if (files.length > 0 && nav.canShare?.({ files })) {
+          await nav.share({ text: saved.text, files });
         } else {
           await nav.share({ text: saved.text });
         }
@@ -229,6 +244,11 @@ export function CompleteTaskDialog({
               {saved.text}
               {saved.files.length > 0 ? `\n📷 照片 ${saved.files.length} 张（分享时一并发送）` : ""}
             </pre>
+            {saved.files.length > 0 && (
+              <p className="text-xs text-slate-500">
+                微信收图片时会丢掉文字：点「分享」会自动带上第一张「文字摘要卡」，文字也已复制到剪贴板，微信里可直接粘贴。
+              </p>
+            )}
             <div className="grid gap-2">
               <Button className="h-14 text-lg" onClick={() => void shareNative()}>
                 📤 分享（微信 / WhatsApp / 更多）
