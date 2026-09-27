@@ -17,6 +17,7 @@ import { assignZone, isDuplicateCustomer, todayKey, type Customer } from "@/lib/
 
 interface Row {
   name: string;
+  code: string;
   phone: string;
   address: string;
   amount: number;
@@ -68,6 +69,7 @@ export function ImportDialog({
   const downloadTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
       {
+        "Customer Code": "A001",
         "Customer Name": "Ahmad",
         Phone: "0127778888",
         Address: "Taman Molek, Johor Bahru",
@@ -103,6 +105,22 @@ export function ImportDialog({
           }
           return {
             name: pick(r, ["customer name", "name", "客户姓名", "姓名"]),
+            code: pick(r, [
+              "code",
+              "customer code",
+              "customer no",
+              "customer number",
+              "account no",
+              "account number",
+              "acc no",
+              "no",
+              "no.",
+              "number",
+              "编号",
+              "客户编号",
+              "客户号",
+              "号码",
+            ]),
             phone: pick(r, ["phone", "电话", "电话号码"]),
             address: pick(r, ["address", "地址"]),
             amount,
@@ -142,6 +160,7 @@ export function ImportDialog({
               : null;
             await insertCustomer({
               name: row.name,
+              code: row.code || null,
               phone: row.phone || null,
               address: row.address,
               amount: row.amount,

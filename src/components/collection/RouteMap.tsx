@@ -127,7 +127,7 @@ export function RouteMap({
         .map(({ c, idx }) => {
           const seq = displaySeq(c, idx + 1);
           const done = !["pending", "in_progress"].includes(c.status);
-          return `<div style="margin-top:6px"><b>${seq != null ? `第 ${seq} 站 · ` : ""}${done ? "✅ " : ""}${c.name}</b><br/>${c.address}<br/>欠款 RM ${c.amount}${c.geo_status === "approximate" ? '<br/>📍 坐标：大致位置（自动填入，建议核对）' : ""}</div>`;
+          return `<div style="margin-top:6px"><b>${seq != null ? `第 ${seq} 站 · ` : ""}${c.code ? `#${c.code} · ` : ""}${done ? "✅ " : ""}${c.name}</b><br/>${c.address}<br/>欠款 RM ${c.amount}${c.geo_status === "approximate" ? '<br/>📍 坐标：大致位置（自动填入，建议核对）' : ""}</div>`;
         })
         .join("");
       const m = L.marker([g.lat, g.lng], {

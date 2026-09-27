@@ -57,6 +57,9 @@ export function CustomerCard({
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
             <span className="font-semibold text-rose-600">{money(customer.amount)}</span>
+            {customer.code && (
+              <Badge variant="outline" className="font-mono">#{customer.code}</Badge>
+            )}
             {zoneName && (
               <Badge className="bg-indigo-100 text-indigo-700">{zoneName}</Badge>
             )}

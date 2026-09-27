@@ -6,6 +6,7 @@ function make(partial: Partial<Customer>): Customer {
   return {
     _row_id: 1,
     name: "Test",
+    code: null,
     phone: null,
     address: "Johor Bahru",
     amount: 100,
@@ -426,5 +427,29 @@ describe("分享文字（交差摘要）", () => {
     expect(text).not.toContain("收款");
     expect(text).not.toContain("备注");
     expect(text).toContain("需再次回访");
+  });
+
+  // @kliv-spec-derived — 用户要求：每个顾客都有自己的编号，交差时也要能对上号
+  it("有编号时摘要里带编号，没编号时不出现编号行", () => {
+    const withCode = buildShareText({
+      name: "Ahmad",
+      code: "A001",
+      address: "Taman Molek",
+      resultLabel: "已收款",
+      collected: 100,
+      notes: "",
+      at: new Date(2026, 8, 22, 10, 0),
+    });
+    expect(withCode).toContain("编号：A001");
+    const noCode = buildShareText({
+      name: "Ahmad",
+      code: null,
+      address: "Taman Molek",
+      resultLabel: "已收款",
+      collected: 100,
+      notes: "",
+      at: new Date(2026, 8, 22, 10, 0),
+    });
+    expect(noCode).not.toContain("编号");
   });
 });

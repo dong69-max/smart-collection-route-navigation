@@ -12,6 +12,8 @@ export type TaskStatus =
 export interface Customer {
   _row_id: number;
   name: string;
+  // 客户自己的编号（老板账本/公司系统里的号码），与拜访序号 route_order 互不相干
+  code: string | null;
   phone: string | null;
   address: string;
   amount: number;
@@ -58,6 +60,8 @@ export function parseHistoryPhotos(row: Pick<HistoryRow, "photos">): string[] {
 
 export interface ShareVisitInfo {
   name: string;
+  // 客户自己的编号：有就写进交差摘要，上司对账方便
+  code?: string | null;
   address: string;
   resultLabel: string;
   collected: number;
@@ -70,7 +74,9 @@ export function buildShareText(v: ShareVisitInfo): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   const t = v.at;
   const time = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}`;
-  const lines = [`📋 收账记录 · ${time}`, `客户：${v.name}`, `结果：${v.resultLabel}`];
+  const lines = [`📋 收账记录 · ${time}`];
+  if (v.code) lines.push(`编号：${v.code}`);
+  lines.push(`客户：${v.name}`, `结果：${v.resultLabel}`);
   if (v.collected > 0) lines.push(`收款：RM ${v.collected.toFixed(2)}`);
   if (v.notes) lines.push(`备注：${v.notes}`);
   lines.push(`地址：${v.address}`);

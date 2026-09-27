@@ -46,6 +46,7 @@ export function CustomerFormDialog({
 }) {
   const { refresh, zones, customers } = useCollection();
   const [name, setName] = useState("");
+  const [code, setCode] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [amount, setAmount] = useState("");
@@ -68,6 +69,7 @@ export function CustomerFormDialog({
     if (!open) return;
     if (editCustomer) {
       setName(editCustomer.name);
+      setCode(editCustomer.code ?? "");
       setPhone(editCustomer.phone ?? "");
       setAddress(editCustomer.address);
       setAmount(String(editCustomer.amount ?? ""));
@@ -81,6 +83,7 @@ export function CustomerFormDialog({
       if (editCustomer.geo_status === "approximate" || editCustomer.lat == null) setMapOpen(true);
     } else {
       setName("");
+      setCode("");
       setPhone("");
       setAddress("");
       setAmount("");
@@ -158,6 +161,7 @@ export function CustomerFormDialog({
       const zone = assignZone(zones, address.trim(), lat as number, lng as number);
       const data = {
         name: name.trim(),
+        code: code.trim() || null,
         phone: phone.trim() || null,
         address: address.trim(),
         amount: Number(amount || 0),
@@ -221,9 +225,21 @@ export function CustomerFormDialog({
             <Label htmlFor="cname">客户姓名 *</Label>
             <Input id="cname" value={name} onChange={(e) => setName(e.target.value)} className="h-12" />
           </div>
-          <div>
-            <Label htmlFor="cphone">电话号码</Label>
-            <Input id="cphone" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-12" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="ccode">客户编号</Label>
+              <Input
+                id="ccode"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="如 A001"
+                className="h-12"
+              />
+            </div>
+            <div>
+              <Label htmlFor="cphone">电话号码</Label>
+              <Input id="cphone" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-12" />
+            </div>
           </div>
           <div>
             <Label htmlFor="caddr">地址 *</Label>

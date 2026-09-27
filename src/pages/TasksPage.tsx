@@ -69,6 +69,7 @@ export default function TasksPage() {
       const matchQ =
         !term ||
         c.name.toLowerCase().includes(term) ||
+        (c.code ?? "").toLowerCase().includes(term) ||
         (c.phone ?? "").toLowerCase().includes(term) ||
         c.address.toLowerCase().includes(term);
       if (!matchQ) return false;
@@ -189,7 +190,7 @@ export default function TasksPage() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="搜索姓名 / 电话 / 地址"
+            placeholder="搜索姓名 / 编号 / 电话 / 地址"
             className="h-12 border-0 bg-white/10 pl-9 text-white placeholder:text-slate-400"
           />
         </div>

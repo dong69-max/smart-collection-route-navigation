@@ -156,6 +156,7 @@ export function CompleteTaskDialog({
       setSaved({
         text: buildShareText({
           name: customer.name,
+          code: customer.code,
           address: customer.address,
           resultLabel,
           collected,
