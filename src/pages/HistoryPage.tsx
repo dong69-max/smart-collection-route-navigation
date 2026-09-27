@@ -98,21 +98,20 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-slate-900 px-4 pb-5 pt-9 text-white">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="text-2xl font-extrabold tracking-tight">收账历史</h1>
+      <header className="bg-slate-900 px-4 pb-4 pt-8 text-white">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold">收账历史</h1>
           {history.length > 0 && (
             <Button
               size="sm"
-              variant="outline"
-              className="h-9 border-white/25 bg-transparent px-3 text-sm font-semibold text-white hover:bg-white/15"
+              variant="destructive"
               onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
-            >
+             className="text-lg">
               {selectMode ? "退出多选" : "多选"}
             </Button>
           )}
         </div>
-        <p className="mt-2 text-sm text-slate-300">
+        <p className="mt-1 text-sm text-slate-300">
           共 {history.length} 笔记录 · 累计收款 {money(totalCollected)}
         </p>
         <div className="relative mt-3">
@@ -170,19 +169,15 @@ export default function HistoryPage() {
                   </button>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-base font-bold text-slate-900">{h.customer_name}</p>
-                    <span className="shrink-0 text-xs text-slate-400">{fmt(h.recorded_at)}</span>
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-slate-900">{h.customer_name}</p>
+                    <span className="text-xs text-slate-400">{fmt(h.recorded_at)}</span>
                   </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                      {h.result}
-                    </span>
-                    <span className="text-base font-extrabold tabular-nums text-emerald-600">
-                      {money(h.collected_amount)}
-                    </span>
-                  </div>
-                  {h.notes && <p className="mt-1.5 text-sm text-slate-400">备注：{h.notes}</p>}
+                  <p className="mt-1 text-sm text-slate-600">结果：{h.result}</p>
+                  <p className="text-sm font-semibold text-emerald-600">
+                    收款：{money(h.collected_amount)}
+                  </p>
+                  {h.notes && <p className="mt-1 text-sm text-slate-500">备注：{h.notes}</p>}
                   {parseHistoryPhotos(h).length > 0 && (
                     <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
                       {parseHistoryPhotos(h).map((p, i) => (
@@ -202,10 +197,10 @@ export default function HistoryPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="mt-1.5 h-8 text-xs text-rose-400 hover:text-rose-600"
+                  className="mt-1 text-rose-500"
                   onClick={() => setToDelete(h)}
                 >
-                  <Trash2 className="mr-1 h-3.5 w-3.5" />
+                  <Trash2 className="mr-1 h-4 w-4" />
                   删除
                 </Button>
               )}

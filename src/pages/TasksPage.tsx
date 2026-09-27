@@ -138,24 +138,23 @@ export default function TasksPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-slate-900 px-4 pb-5 pt-9 text-white">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="text-2xl font-extrabold tracking-tight">今日任务</h1>
-          <div className="flex shrink-0 gap-2">
+      <header className="bg-slate-900 px-4 pb-4 pt-8 text-white">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold">今日任务</h1>
+          <div className="flex gap-2">
             {active.length > 0 && (
               <Button
                 size="sm"
-                variant="outline"
-                className="h-9 border-white/25 bg-transparent px-3 text-sm font-semibold text-white hover:bg-white/15"
+                variant="destructive"
                 onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
-              >
+               className="text-lg">
                 {selectMode ? "退出多选" : "多选"}
               </Button>
             )}
             {!selectMode && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" className="h-9 bg-white px-3 text-sm font-semibold text-slate-900 hover:bg-slate-100">
+                  <Button size="sm" variant="secondary" className="text-lg">
                     <Plus className="mr-1 h-4 w-4" />
                     添加
                     <ChevronDown className="ml-0.5 h-3.5 w-3.5" />
@@ -179,14 +178,14 @@ export default function TasksPage() {
             )}
           </div>
         </div>
-        <p className="mt-2 text-sm text-slate-300">
+        <p className="mt-1 text-sm text-slate-300">
           完成进度 {done} / {active.length}
         </p>
         <Progress
           value={active.length ? (done / active.length) * 100 : 0}
-          className="mt-1.5 h-1.5 bg-white/15"
+          className="mt-2 h-2 bg-white/20"
         />
-        <div className="relative mt-4">
+        <div className="relative mt-3">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={q}
@@ -210,64 +209,55 @@ export default function TasksPage() {
         )}
       </header>
 
-      <div className="border-b border-slate-200/60 bg-slate-50 px-4 py-3">
-        <div className="flex gap-2 overflow-x-auto">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
-                filter === f.id
-                  ? "bg-sky-600 text-white shadow-sm"
-                  : "bg-white text-slate-500 ring-1 ring-slate-200"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-        {zones.length > 0 && (
-          <div className="mt-2 flex gap-2 overflow-x-auto">
-            <button
-              onClick={() => setZoneFilter("all")}
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                zoneFilter === "all"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-white text-slate-500 ring-1 ring-slate-200"
-              }`}
-            >
-              全部地区-{active.length}
-            </button>
-            {zones.map((z) => (
-              <button
-                key={z._row_id}
-                onClick={() => setZoneFilter(z._row_id)}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  zoneFilter === z._row_id
-                    ? "bg-indigo-600 text-white"
-                    : "bg-white text-slate-500 ring-1 ring-slate-200"
-                }`}
-              >
-                {z.name}-{zoneCount(z._row_id)}
-              </button>
-            ))}
-            {hasUnzoned && (
-              <button
-                onClick={() => setZoneFilter("none")}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  zoneFilter === "none"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-white text-slate-500 ring-1 ring-slate-200"
-                }`}
-              >
-                未分区-{zoneCount("none")}
-              </button>
-            )}
-          </div>
-        )}
+      <div className="flex gap-2 overflow-x-auto px-4 py-3">
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium ${
+              filter === f.id ? "bg-sky-600 text-white" : "bg-white text-slate-600"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
-      <div className="space-y-3 px-4 pb-8 pt-4">
+      {zones.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto px-4 pb-3">
+          <button
+            onClick={() => setZoneFilter("all")}
+            className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium ${
+              zoneFilter === "all" ? "border-indigo-600 bg-indigo-600 text-white" : "border-indigo-200 bg-white text-indigo-700"
+            }`}
+          >
+            全部地区-{active.length}
+          </button>
+          {zones.map((z) => (
+            <button
+              key={z._row_id}
+              onClick={() => setZoneFilter(z._row_id)}
+              className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium ${
+                zoneFilter === z._row_id ? "border-indigo-600 bg-indigo-600 text-white" : "border-indigo-200 bg-white text-indigo-700"
+              }`}
+            >
+              {z.name}-{zoneCount(z._row_id)}
+            </button>
+          ))}
+          {hasUnzoned && (
+            <button
+              onClick={() => setZoneFilter("none")}
+              className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium ${
+                zoneFilter === "none" ? "border-indigo-600 bg-indigo-600 text-white" : "border-indigo-200 bg-white text-indigo-700"
+              }`}
+            >
+              未分区-{zoneCount("none")}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-3 px-4 pb-6">
         {!selectMode && list.length === 0 && (
           <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500">没有匹配的客户。</p>
         )}
