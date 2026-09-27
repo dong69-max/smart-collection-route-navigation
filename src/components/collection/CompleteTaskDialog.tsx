@@ -175,31 +175,30 @@ export function CompleteTaskDialog({
 
   const shareNative = async () => {
     if (!saved) return;
+    const nav = navigator as Navigator & { canShare?: (d: { files?: File[] }) => boolean };
+    // 有照片时：文字和照片一次一起发出去
+    if (saved.files.length > 0) {
+      // 微信收到「图片+文字」会只留图片、丢掉文字（微信自身的限制）：
+      // 先把文字复制好，微信里长按粘贴就能补发
+      try {
+        await navigator.clipboard.writeText(saved.text);
+      } catch {
+        // 没有剪贴板权限就算了
+      }
+    }
     try {
-      // 纯文字分享，不带任何图片：微信、WhatsApp 都能收到文字
-      if (typeof navigator.share === "function") {
-        await navigator.share({ text: saved.text });
+      if (typeof nav.share === "function") {
+        if (saved.files.length > 0 && nav.canShare?.({ files: saved.files })) {
+          await nav.share({ text: saved.text, files: saved.files });
+        } else {
+          await nav.share({ text: saved.text });
+        }
         return;
       }
     } catch {
       return; // 用户取消分享
     }
     await copyText();
-  };
-
-  // 照片单独分享：微信收图片时会丢文字，所以文字和照片分成两个按钮发
-  const sharePhotos = async () => {
-    if (!saved || saved.files.length === 0) return;
-    const nav = navigator as Navigator & { canShare?: (d: { files?: File[] }) => boolean };
-    if (typeof nav.share === "function" && nav.canShare?.({ files: saved.files })) {
-      try {
-        await nav.share({ files: saved.files });
-      } catch {
-        // 用户取消分享
-      }
-      return;
-    }
-    toast.error("这个浏览器不支持直接分享照片，请长按照片保存后再发");
   };
 
   const shareWhatsapp = () => {
@@ -237,15 +236,18 @@ export function CompleteTaskDialog({
             </DialogHeader>
             <pre className="max-h-52 overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
               {saved.text}
+              {saved.files.length > 0 ? `\n📷 现场照片 ${saved.files.length} 张（与文字一起发送）` : ""}
             </pre>
             <div className="grid gap-2">
               <Button className="h-14 text-lg" onClick={() => void shareNative()}>
-                📤 分享文字（微信 / WhatsApp）
+                {saved.files.length > 0
+                  ? `📤 分享（文字 + ${saved.files.length} 张照片一起发）`
+                  : "📤 分享文字（微信 / WhatsApp）"}
               </Button>
               {saved.files.length > 0 && (
-                <Button variant="outline" className="h-12" onClick={() => void sharePhotos()}>
-                  📷 分享现场照片（{saved.files.length} 张，不含文字）
-                </Button>
+                <p className="text-xs text-slate-500">
+                  一次把文字和照片都发出去。WhatsApp 等会一起收到；微信会自动丢掉文字（微信自身的限制），文字已复制好，在微信聊天框长按粘贴再发一条即可。
+                </p>
               )}
               <Button variant="outline" className="h-12" onClick={shareWhatsapp}>
                 💬 直接发 WhatsApp（仅文字）
