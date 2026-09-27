@@ -18,7 +18,6 @@ import { content } from "@/lib/shared/kliv-content.js";
 import { errorText, insertHistory, updateCustomer } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
 import { STATUS_LABELS, buildShareText, type Customer, type TaskStatus } from "@/lib/collection/types";
-import { buildSummaryCardFile } from "./shareCard";
 
 const RESULTS: TaskStatus[] = [
   "done",
@@ -176,35 +175,31 @@ export function CompleteTaskDialog({
 
   const shareNative = async () => {
     if (!saved) return;
-    // 微信收图片时会丢掉文字（WhatsApp 正常）：先把文字复制到剪贴板，
-    // 再把文字做成一张摘要卡放在照片最前面，微信里内容就不会丢
     try {
-      await navigator.clipboard.writeText(saved.text);
-    } catch {
-      // 没有剪贴板权限就算了，下面还有摘要卡兜底
-    }
-    const nav = navigator as Navigator & { canShare?: (d: { files?: File[] }) => boolean };
-    try {
-      if (typeof nav.share === "function") {
-        let files = saved.files;
-        if (files.length > 0) {
-          try {
-            files = [await buildSummaryCardFile(saved.text), ...files];
-          } catch {
-            // 摘要卡生成失败就只发原照片
-          }
-        }
-        if (files.length > 0 && nav.canShare?.({ files })) {
-          await nav.share({ text: saved.text, files });
-        } else {
-          await nav.share({ text: saved.text });
-        }
+      // 纯文字分享，不带任何图片：微信、WhatsApp 都能收到文字
+      if (typeof navigator.share === "function") {
+        await navigator.share({ text: saved.text });
         return;
       }
     } catch {
       return; // 用户取消分享
     }
     await copyText();
+  };
+
+  // 照片单独分享：微信收图片时会丢文字，所以文字和照片分成两个按钮发
+  const sharePhotos = async () => {
+    if (!saved || saved.files.length === 0) return;
+    const nav = navigator as Navigator & { canShare?: (d: { files?: File[] }) => boolean };
+    if (typeof nav.share === "function" && nav.canShare?.({ files: saved.files })) {
+      try {
+        await nav.share({ files: saved.files });
+      } catch {
+        // 用户取消分享
+      }
+      return;
+    }
+    toast.error("这个浏览器不支持直接分享照片，请长按照片保存后再发");
   };
 
   const shareWhatsapp = () => {
@@ -242,17 +237,16 @@ export function CompleteTaskDialog({
             </DialogHeader>
             <pre className="max-h-52 overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
               {saved.text}
-              {saved.files.length > 0 ? `\n📷 照片 ${saved.files.length} 张（分享时一并发送）` : ""}
             </pre>
-            {saved.files.length > 0 && (
-              <p className="text-xs text-slate-500">
-                微信收图片时会丢掉文字：点「分享」会自动带上第一张「文字摘要卡」，文字也已复制到剪贴板，微信里可直接粘贴。
-              </p>
-            )}
             <div className="grid gap-2">
               <Button className="h-14 text-lg" onClick={() => void shareNative()}>
-                📤 分享（微信 / WhatsApp / 更多）
+                📤 分享文字（微信 / WhatsApp）
               </Button>
+              {saved.files.length > 0 && (
+                <Button variant="outline" className="h-12" onClick={() => void sharePhotos()}>
+                  📷 分享现场照片（{saved.files.length} 张，不含文字）
+                </Button>
+              )}
               <Button variant="outline" className="h-12" onClick={shareWhatsapp}>
                 💬 直接发 WhatsApp（仅文字）
               </Button>
