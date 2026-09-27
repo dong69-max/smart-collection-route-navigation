@@ -84,22 +84,24 @@ export default function RoutePage() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-slate-900 px-4 pb-4 pt-8 text-white">
-        <h1 className="text-xl font-bold">今日路线</h1>
-        <p className="mt-1 text-sm text-slate-300">
+      <header className="bg-slate-900 px-4 pb-5 pt-9 text-white">
+        <h1 className="text-2xl font-extrabold tracking-tight">今日路线</h1>
+        <p className="mt-2 text-sm text-slate-300">
           {plan
             ? `总距离 ${km(plan.total_distance_m)} · 预计驾驶 ${mins(plan.total_duration_s)}${zoneName ? ` · 今日专收：${zoneName}` : ""}${plan.manual ? " · 路线已手动调整" : ""}`
             : zoneName
               ? `今日专收：${zoneName} · 尚未规划路线`
               : "尚未规划路线"}
         </p>
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex gap-1.5">
           {MODES.map((m) => (
             <button
               key={m.id}
               onClick={() => setMode(m.id)}
-              className={`flex-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors ${
-                mode === m.id ? "bg-sky-500 text-white" : "bg-white/10 text-slate-300"
+              className={`flex-1 rounded-xl px-2 py-2.5 text-sm font-semibold transition-colors ${
+                mode === m.id
+                  ? "bg-sky-500 text-white shadow-sm shadow-sky-500/40"
+                  : "bg-white/10 text-slate-300 hover:bg-white/15"
               }`}
             >
               {m.label}
@@ -107,11 +109,13 @@ export default function RoutePage() {
           ))}
         </div>
         {zones.length > 0 && (
-          <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+          <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
             <button
               onClick={() => setZoneFilter("all")}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${
-                zoneFilter === "all" ? "border-sky-400 bg-sky-500 text-white" : "border-white/30 bg-white/10 text-slate-200"
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                zoneFilter === "all"
+                  ? "border-sky-400 bg-sky-500 text-white"
+                  : "border-white/25 bg-white/10 text-slate-200 hover:bg-white/15"
               }`}
             >
               全部地区-{customers.filter((c) => c.hidden !== 1).length}
@@ -120,8 +124,10 @@ export default function RoutePage() {
               <button
                 key={z._row_id}
                 onClick={() => setZoneFilter(z._row_id)}
-                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${
-                  zoneFilter === z._row_id ? "border-sky-400 bg-sky-500 text-white" : "border-white/30 bg-white/10 text-slate-200"
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                  zoneFilter === z._row_id
+                    ? "border-sky-400 bg-sky-500 text-white"
+                    : "border-white/25 bg-white/10 text-slate-200 hover:bg-white/15"
                 }`}
               >
                 {z.name}-{zoneOpenCount(z._row_id)}
@@ -130,8 +136,10 @@ export default function RoutePage() {
             {hasUnzoned && (
               <button
                 onClick={() => setZoneFilter("none")}
-                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${
-                  zoneFilter === "none" ? "border-sky-400 bg-sky-500 text-white" : "border-white/30 bg-white/10 text-slate-200"
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                  zoneFilter === "none"
+                    ? "border-sky-400 bg-sky-500 text-white"
+                    : "border-white/25 bg-white/10 text-slate-200 hover:bg-white/15"
                 }`}
               >
                 未分区-{zoneOpenCount("none")}
@@ -142,7 +150,8 @@ export default function RoutePage() {
       </header>
 
       <div className="px-4 pt-4">
-        <RouteMap
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 shadow-sm">
+          <RouteMap
           customers={mapCustomers}
           position={position}
           nextId={visible[0]?._row_id}
@@ -154,16 +163,26 @@ export default function RoutePage() {
           height={280}
           onSelect={() => undefined}
         />
+        </div>
       </div>
 
       <div className="space-y-2 px-4 pt-4">
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" className="h-12" onClick={() => void locate()} disabled={locating}>
-            <Crosshair className="mr-1 h-4 w-4" />
+        <div className="grid grid-cols-2 gap-2.5">
+          <Button
+            variant="outline"
+            className="h-12 text-base font-semibold"
+            onClick={() => void locate()}
+            disabled={locating}
+          >
+            <Crosshair className="mr-1.5 h-5 w-5" />
             {locating ? "定位中…" : "更新位置"}
           </Button>
-          <Button className="h-12 bg-slate-900 text-white hover:bg-slate-800" onClick={() => void planRoute()} disabled={planning}>
-            <Brain className="mr-1 h-4 w-4" />
+          <Button
+            className="h-12 bg-slate-900 text-base font-semibold text-white hover:bg-slate-800"
+            onClick={() => void planRoute()}
+            disabled={planning}
+          >
+            <Brain className="mr-1.5 h-5 w-5" />
             {planning ? "计算中…" : "智能规划"}
           </Button>
         </div>
@@ -199,7 +218,7 @@ export default function RoutePage() {
               <CustomerCard
                 customer={c}
                 index={displaySeq(c, i + 1) ?? undefined}
-                legText={leg ? `${km(leg.distance_m)} · 约 ${mins(leg.duration_s)}` : undefined}
+                legText={leg ? `下一程 ${km(leg.distance_m)} · 约 ${mins(leg.duration_s)}` : undefined}
                 zoneName={c.zone_id != null ? zones.find((z) => z._row_id === c.zone_id)?.name ?? null : null}
                 onComplete={setComplete}
                 onEdit={(x) => setEditCustomer(x)}
@@ -207,16 +226,25 @@ export default function RoutePage() {
                 onDelete={(x) => void remove(x)}
               />
               <div className="flex justify-end gap-1">
-                <Button variant="ghost" size="sm" onClick={() => void move(i, -1)} disabled={i === 0}>
-                  <ArrowUp className="h-4 w-4" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-3 text-xs text-slate-500"
+                  onClick={() => void move(i, -1)}
+                  disabled={i === 0}
+                >
+                  <ArrowUp className="mr-0.5 h-3.5 w-3.5" />
+                  上移
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="h-9 px-3 text-xs text-slate-500"
                   onClick={() => void move(i, 1)}
                   disabled={i === visible.length - 1}
                 >
-                  <ArrowDown className="h-4 w-4" />
+                  <ArrowDown className="mr-0.5 h-3.5 w-3.5" />
+                  下移
                 </Button>
               </div>
             </div>
@@ -236,7 +264,7 @@ export default function RoutePage() {
                 </p>
                 <Button
                   variant="outline"
-                  className="mt-2 h-11 w-full"
+                  className="mt-2.5 h-12 w-full text-base font-semibold"
                   onClick={() =>
                     window.open(
                       `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(base.address)}&travelmode=driving`,
