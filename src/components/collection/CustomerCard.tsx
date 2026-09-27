@@ -81,7 +81,7 @@ export function CustomerCard({
             {!open && <Badge variant="secondary">{STATUS_LABELS[customer.status]}</Badge>}
             {customer.lat == null && <Badge variant="destructive">未定位</Badge>}
           </div>
-          {customer.notes && <p className="mt-2 line-clamp-2 text-base text-slate-400">备注：{customer.notes}</p>}
+          {customer.notes && <p className="mt-2 line-clamp-2 text-base text-amber-500">备注：{customer.notes}</p>}
         </div>
       </div>
 
