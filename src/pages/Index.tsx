@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Brain, Camera, Crosshair, MapPin, PartyPopper, Plus, Upload, AlertTriangle } from "lucide-react";
+import { Brain, Camera, Crosshair, MapPin, PartyPopper, Plus, Star, Upload, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -130,7 +130,7 @@ export default function Index() {
         {returnText && <p className="mt-2 text-xs text-sky-100">{returnText}</p>}
       </header>
 
-      <main className="space-y-4 px-4 pt-4">
+      <main className="space-y-4 px-4 pt-5">
         <div className="grid gap-2">
           <Button className="h-14 text-lg" onClick={() => void locate()} disabled={locating}>
             <Crosshair className="mr-2 h-5 w-5" />
@@ -186,28 +186,45 @@ export default function Index() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" className="h-12" onClick={() => setScanOpen(true)}>
-            <Camera className="mr-1 h-5 w-5" />
+        <div className="grid grid-cols-3 gap-2">
+          <Button
+            variant="outline"
+            className="h-16 flex-col gap-1 text-xs font-semibold"
+            onClick={() => setScanOpen(true)}
+          >
+            <Camera className="h-5 w-5" />
             拍照添加
           </Button>
-          <Button variant="outline" className="h-12" onClick={() => setAddOpen(true)}>
-            <Plus className="mr-1 h-5 w-5" />
+          <Button
+            variant="outline"
+            className="h-16 flex-col gap-1 text-xs font-semibold"
+            onClick={() => setAddOpen(true)}
+          >
+            <Plus className="h-5 w-5" />
             添加客户
           </Button>
+          <Button
+            variant="outline"
+            className="h-16 flex-col gap-1 text-xs font-semibold"
+            onClick={() => setImportOpen(true)}
+          >
+            <Upload className="h-5 w-5" />
+            批量导入
+          </Button>
         </div>
-        <Button variant="outline" className="h-12 w-full" onClick={() => setImportOpen(true)}>
-          <Upload className="mr-1 h-5 w-5" />
-          批量导入（Excel）
-        </Button>
 
-        <Button variant="outline" className="h-12 w-full" onClick={() => setBaseOpen(true)}>
-          🏠 设置大本营（出发与返回）
-        </Button>
-
-        <Button variant="outline" className="h-12 w-full text-indigo-700" onClick={() => setZoneOpen(true)}>
-          🗺️ 分区管理（自动分东/南/西区，可选今天专收某区）
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" className="h-11 text-sm font-semibold" onClick={() => setBaseOpen(true)}>
+            🏠 设置大本营
+          </Button>
+          <Button
+            variant="outline"
+            className="h-11 text-sm font-semibold text-indigo-700"
+            onClick={() => setZoneOpen(true)}
+          >
+            🗺️ 分区管理
+          </Button>
+        </div>
 
         {nearby.length > 0 && (
           <section className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
@@ -238,10 +255,25 @@ export default function Index() {
               今天还没有待处理客户，先添加或导入客户吧。
             </p>
           ) : (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-lg font-bold text-slate-900">{orderedOpen[0].name}</p>
-              <p className="mt-1 text-sm text-slate-500">{orderedOpen[0].address}</p>
-              <p className="mt-1 text-sm font-semibold text-rose-600">
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-2">
+                {orderedOpen[0].code && (
+                  <span className="shrink-0 rounded-lg bg-slate-900 px-2 py-0.5 font-mono text-sm font-bold tracking-wide text-white">
+                    #{orderedOpen[0].code}
+                  </span>
+                )}
+                <p className="line-clamp-2 break-words text-lg font-extrabold leading-tight tracking-tight text-slate-900">
+                  {orderedOpen[0].name}
+                </p>
+                {orderedOpen[0].priority === 1 && (
+                  <Star className="h-4 w-4 shrink-0 fill-amber-400 text-amber-400" />
+                )}
+              </div>
+              <p className="mt-1.5 flex items-start gap-1.5 text-[15px] font-medium leading-snug text-slate-600">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                <span className="line-clamp-2">{orderedOpen[0].address}</span>
+              </p>
+              <p className="mt-2 text-base font-extrabold tabular-nums text-rose-600">
                 {money(orderedOpen[0].amount)}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
