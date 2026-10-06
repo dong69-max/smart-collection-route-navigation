@@ -318,7 +318,7 @@ export default function TasksPage() {
         )}
 
         {hiddenCustomers.length > 0 && (
-          <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <section className="rounded-2xl border border-gray-300 bg-slate-50 p-4">
             <h2 className="text-sm font-bold text-slate-700">
               🙈 已隐藏 {hiddenCustomers.length} 位客户（今天不去）
             </h2>
