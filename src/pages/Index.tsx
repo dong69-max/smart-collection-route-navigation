@@ -255,7 +255,7 @@ export default function Index() {
               今天还没有待处理客户，先添加或导入客户吧。
             </p>
           ) : (
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <div className="rounded-2xl border border-slate-400 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
               <div className="flex items-start gap-2">
                 {orderedOpen[0].code && (
                   <span className="mt-0.5 shrink-0 rounded-lg bg-slate-900 px-2 py-0.5 font-mono text-[13px] font-bold tracking-wide text-white">

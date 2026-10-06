@@ -322,13 +322,19 @@ export default function TasksPage() {
             <h2 className="text-sm font-bold text-slate-700">
               🙈 已隐藏 {hiddenCustomers.length} 位客户（今天不去）
             </h2>
-            <p className="mt-0.5 text-xs text-slate-400">想去了随时恢复，客户不会被删除。</p>
+            <p className="mt-0.5 text-xs text-stone-950">点客户名字可查看和修改详情，想去了随时恢复显示。</p>
             <ul className="mt-3 space-y-2">
               {hiddenCustomers.map((c) => (
                 <li key={c._row_id} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="min-w-0 truncate text-slate-600">
+                  <button
+                    type="button"
+                    aria-label={`查看 ${c.name} 详情`}
+                    onClick={() => setEditCustomer(c)}
+                    className="min-w-0 flex-1 truncate rounded text-left font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 active:text-sky-700"
+                  >
+                    {c.code ? `#${c.code} ` : ""}
                     {c.name} · {money(c.amount)}
-                  </span>
+                  </button>
                   <Button
                     variant="outline"
                     size="sm"
