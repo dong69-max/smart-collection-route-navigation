@@ -38,7 +38,7 @@ export function CustomerCard({
   const [delOpen, setDelOpen] = useState(false);
   const open = ["pending", "in_progress"].includes(customer.status);
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-2 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ">
+    <div className="rounded-2xl border border-slate-400 bg-white p-2 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ">
       <div className="flex items-start gap-3">
         {index != null && (
           <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-sm font-extrabold text-white shadow-sm shadow-sky-600/30">
