@@ -172,5 +172,5 @@ export function RouteMap({
 
   // zIndex: 0 建立独立图层上下文：地图内部的瓦片/标记/缩放按钮
   // （内部层级可到 1000）都被限制在地图区域内，弹窗永远显示在地图之上。
-  return <div ref={ref} style={{ height, zIndex: 0 }} className="relative w-full rounded-xl" />;
+  return <div ref={ref} style={{ height, zIndex: 0 }} className="relative w-full rounded-xl " />;
 }
