@@ -22,6 +22,7 @@ import { BaseDialog } from "@/components/collection/BaseDialog";
 import { ZoneDialog } from "@/components/collection/ZoneDialog";
 import { LetterScanDialog } from "@/components/collection/LetterScanDialog";
 import { useCollection } from "@/lib/collection/store";
+import { toast } from "sonner";
 import { isOpen, km, mins, money, type Customer } from "@/lib/collection/types";
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
@@ -80,6 +81,19 @@ export default function Index() {
   const returnText = base && plan?.return_leg
     ? `返回大本营：${km(plan.return_leg.distance_m)} · 约 ${mins(plan.return_leg.duration_s)}`
     : null;
+  const buildReport = () => {
+    const d = new Date();
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return [
+      `📋 收工日报 ${date}${todayZone ? `（${todayZone.name}）` : ""}`,
+      `✅ 已完成：${doneCount} / ${total} 家`,
+      `💰 收款总额：${money(collected)}`,
+      `⏳ 未收：${openCount} 家，欠款 ${money(outstanding)}`,
+      plan ? `🚗 预计路程：${km(plan.total_distance_m)} · ${mins(plan.total_duration_s)}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  };
   const ungeocoded = useMemo(
     () => active.filter((c) => isOpen(c) && c.lat == null).length,
     [active],
@@ -337,6 +351,33 @@ export default function Index() {
               将把 {doneCount} 个已完成的任务从今日列表归档，进度重新归零，方便明天开始新任务。收账历史记录会完整保留。
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={async () => {
+                const text = buildReport();
+                try {
+                  if (navigator.share) await navigator.share({ text });
+                  else {
+                    await navigator.clipboard.writeText(text);
+                    toast.success("日报已复制，可粘贴发送");
+                  }
+                } catch {
+                  /* 取消分享 */
+                }
+              }}
+            >
+              📤 分享今日日报
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(buildReport())}`, "_blank")}
+            >
+              💬 WhatsApp
+            </Button>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction

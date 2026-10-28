@@ -95,9 +95,9 @@ export function CustomerCard({
               {allCustomers
                 .filter((x) => x.name.trim().toLowerCase() === customer.name.trim().toLowerCase())
                 .map((x, i) => (
-                  <li key={x.id} className={x.id === customer.id ? "font-bold" : ""}>
+                  <li key={x._row_id} className={x._row_id === customer._row_id ? "font-bold" : ""}>
                     {i + 1}. {x.address}
-                    {x.id === customer.id ? "（当前）" : ""}
+                    {x._row_id === customer._row_id ? "（当前）" : ""}
                   </li>
                 ))}
             </ol>
