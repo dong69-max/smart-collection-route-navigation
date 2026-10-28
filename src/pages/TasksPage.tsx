@@ -74,7 +74,7 @@ export default function TasksPage() {
         c.address.toLowerCase().includes(term);
       if (!matchQ) return false;
       const inZone =
-        zoneFilter === "all"
+        zoneFilter === "all" || zoneFilter === "custom"
           ? true
           : zoneFilter === "none"
             ? c.zone_id == null

@@ -6,6 +6,7 @@ import { CustomerCard } from "@/components/collection/CustomerCard";
 import { CompleteTaskDialog } from "@/components/collection/CompleteTaskDialog";
 import { CustomerFormDialog } from "@/components/collection/CustomerFormDialog";
 import { RouteMap } from "@/components/collection/RouteMap";
+import { CustomPickDialog } from "@/components/collection/CustomPickDialog";
 import { deleteCustomer, errorText } from "@/lib/collection/api";
 import { useCollection } from "@/lib/collection/store";
 import { km, mins, displaySeq, zonePolygon, type Customer, type RouteMode } from "@/lib/collection/types";
@@ -36,10 +37,13 @@ export default function RoutePage() {
     endDay,
     zones,
     zoneFilter,
+    customIds,
+    setCustomIds,
     setZoneFilter,
   } = useCollection();
   const [complete, setComplete] = useState<Customer | null>(null);
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const legById = new Map((plan?.legs ?? []).map((l) => [l.id, l]));
 
@@ -47,11 +51,13 @@ export default function RoutePage() {
   const visible =
     zoneFilter === "all"
       ? orderedOpen
+      : zoneFilter === "custom"
+      ? orderedOpen.filter((c) => customIds.includes(c._row_id))
       : orderedOpen.filter((c) =>
           zoneFilter === "none" ? c.zone_id == null : c.zone_id === zoneFilter,
         );
   const zoneName =
-    zoneFilter === "all" ? null : zoneFilter === "none" ? "未分区" : zones.find((z) => z._row_id === zoneFilter)?.name;
+    zoneFilter === "all" ? null : zoneFilter === "custom" ? "自定义路线" : zoneFilter === "none" ? "未分区" : zones.find((z) => z._row_id === zoneFilter)?.name;
   const hasUnzoned = customers.some((c) => c.zone_id == null);
   // 每个区还有多少待收客户（含各区剩余量，隐藏的不算）
   const zoneOpenCount = (zoneId: number | "none") => {
@@ -108,7 +114,7 @@ export default function RoutePage() {
             </button>
           ))}
         </div>
-        {zones.length > 0 && (
+        {(
           <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
             <button
               onClick={() => setZoneFilter("all")}
@@ -119,6 +125,16 @@ export default function RoutePage() {
               }`}
             >
               全部地区-{customers.filter((c) => c.hidden !== 1).length}
+            </button>
+            <button
+              onClick={() => { setZoneFilter("custom"); if (customIds.length === 0) setPicking(true); }}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                zoneFilter === "custom"
+                  ? "border-amber-300 bg-amber-500 text-white"
+                  : "border-white/25 bg-white/10 text-slate-200 hover:bg-white/15"
+              }`}
+            >
+              ✋ 自定义-{customIds.length}
             </button>
             {zones.map((z) => (
               <button
@@ -149,6 +165,14 @@ export default function RoutePage() {
         )}
       </header>
 
+      {zoneFilter === "custom" && (
+        <div className="px-4 pt-4">
+          <Button variant="outline" className="h-12 w-full border-amber-400 text-base font-semibold text-amber-700" onClick={() => setPicking(true)}>
+            ✋ 选择客户放进自定义路线（已选 {customIds.length}）
+          </Button>
+        </div>
+      )}
+      <CustomPickDialog open={picking} onOpenChange={setPicking} candidates={orderedOpen} selected={customIds} onSave={setCustomIds} />
       <div className="px-4 pt-4">
         <div className="overflow-hidden rounded-2xl border border-slate-200/80 shadow-sm">
           <RouteMap

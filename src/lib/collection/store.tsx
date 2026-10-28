@@ -36,7 +36,7 @@ import {
   type Zone,
 } from "./types";
 
-export type ZoneFilter = "all" | "none" | number;
+export type ZoneFilter = "all" | "none" | "custom" | number;
 
 interface Ctx {
   customers: Customer[];
@@ -48,6 +48,8 @@ interface Ctx {
   zoneFilter: ZoneFilter;
   setZoneFilter: (z: ZoneFilter) => void;
   zoneFilteredOpen: Customer[];
+  customIds: number[];
+  setCustomIds: (ids: number[]) => void;
   todayZone: TodayZone | null;
   reclassifyAll: () => Promise<void>;
   loading: boolean;
@@ -81,6 +83,7 @@ const CollectionContext = createContext<Ctx | null>(null);
 const POS_KEY = "collection_last_position";
 const SHARED_PLAN_KEY = "collection_route_plan";
 const SHARED_TZ_KEY = "collection_today_zone";
+const CUSTOM_KEY = "collection_custom_list";
 
 export function CollectionProvider({ children }: { children: ReactNode }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -97,6 +100,16 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
   const [base, setBase] = useState<Base | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
   const [zoneFilter, setZoneFilter] = useState<ZoneFilter>("all");
+  const [customIds, setCustomIdsState] = useState<number[]>([]);
+  const setCustomIds = useCallback((ids: number[]) => {
+    setCustomIdsState(ids);
+    void saveSetting(CUSTOM_KEY, JSON.stringify(ids)).catch(() => {});
+  }, []);
+  useEffect(() => {
+    void getSetting(CUSTOM_KEY).then((raw) => {
+      try { if (raw) setCustomIdsState(JSON.parse(raw) as number[]); } catch { /* ignore */ }
+    }).catch(() => {});
+  }, []);
   const [todayZone, setTodayZone] = useState<TodayZone | null>(null);
 
   const reloadZones = useCallback(async () => {
@@ -283,10 +296,12 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     () =>
       zoneFilter === "all"
         ? openCustomers
-        : openCustomers.filter((c) =>
-            zoneFilter === "none" ? c.zone_id == null : c.zone_id === zoneFilter,
-          ),
-    [openCustomers, zoneFilter],
+        : zoneFilter === "custom"
+          ? openCustomers.filter((c) => customIds.includes(c._row_id))
+          : openCustomers.filter((c) =>
+              zoneFilter === "none" ? c.zone_id == null : c.zone_id === zoneFilter,
+            ),
+    [openCustomers, zoneFilter, customIds],
   );
 
   // 一键重新自动分区：先按地址地名对号，再按坐标归入最近的区
@@ -363,7 +378,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
       };
       persistPlan(newPlan);
       // 记住今天的收账目标区（存服务器，同事同步）：路线页按区规划后，首页显示「今日目标」
-      if (zoneFilter === "all") {
+      if (zoneFilter === "all" || zoneFilter === "custom") {
         setTodayZone(null);
         void saveSetting(SHARED_TZ_KEY, "").catch(() => {});
       } else {
@@ -486,6 +501,8 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     zoneFilter,
     setZoneFilter,
     zoneFilteredOpen,
+    customIds,
+    setCustomIds,
     todayZone,
     reclassifyAll,
     loading,
