@@ -38,6 +38,7 @@ export function CustomerCard({
   const { customers: allCustomers } = useCollection();
   const addrCount = allCustomers.filter((x) => x.name.trim().toLowerCase() === customer.name.trim().toLowerCase()).length;
   const [navOpen, setNavOpen] = useState(false);
+  const [addrOpen, setAddrOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
   const open = ["pending", "in_progress"].includes(customer.status);
   return (
@@ -69,7 +70,11 @@ export function CustomerCard({
           {/* 金额等次要信息收进分隔线下方，不抢视线 */}
           <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t border-slate-100 pt-2.5">
             <span className="text-base font-extrabold tabular-nums text-rose-600">{money(customer.amount)}</span>
-            {addrCount > 1 && <Badge className="bg-violet-100 text-violet-700">共 {addrCount} 个地址</Badge>}
+            {addrCount > 1 && (
+              <button type="button" onClick={() => setAddrOpen((v) => !v)}>
+                <Badge className="cursor-pointer bg-violet-100 text-violet-700">共 {addrCount} 个地址 {addrOpen ? "▲" : "▼"}</Badge>
+              </button>
+            )}
             {customer.pinned_next === 1 && <Badge className="bg-sky-100 text-sky-700">下一站</Badge>}
             {zoneName && <Badge variant="outline" className="border-slate-200 text-slate-50 bg-primary">{zoneName}</Badge>}
             {customer.geo_status === "approximate" && (
@@ -85,6 +90,18 @@ export function CustomerCard({
             {!open && <Badge variant="secondary">{STATUS_LABELS[customer.status]}</Badge>}
             {customer.lat == null && <Badge variant="destructive">未定位</Badge>}
           </div>
+          {addrOpen && (
+            <ol className="mt-2 space-y-1 rounded-lg bg-violet-50 p-2 text-sm text-slate-700">
+              {allCustomers
+                .filter((x) => x.name.trim().toLowerCase() === customer.name.trim().toLowerCase())
+                .map((x, i) => (
+                  <li key={x.id} className={x.id === customer.id ? "font-bold" : ""}>
+                    {i + 1}. {x.address}
+                    {x.id === customer.id ? "（当前）" : ""}
+                  </li>
+                ))}
+            </ol>
+          )}
           {customer.notes && <p className="mt-2 line-clamp-2 text-base text-amber-500">备注：{customer.notes}</p>}
         </div>
       </div>
