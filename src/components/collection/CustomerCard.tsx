@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { NavigationChooserDialog } from "./navigation";
 import { STATUS_LABELS, money, type Customer } from "@/lib/collection/types";
+import { useCollection } from "@/lib/collection/store";
 
 export function CustomerCard({
   customer,
@@ -34,6 +35,8 @@ export function CustomerCard({
   onDelete?: (c: Customer) => void;
   onEdit?: (c: Customer) => void;
 }) {
+  const { customers: allCustomers } = useCollection();
+  const addrCount = allCustomers.filter((x) => x.name.trim().toLowerCase() === customer.name.trim().toLowerCase()).length;
   const [navOpen, setNavOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
   const open = ["pending", "in_progress"].includes(customer.status);
@@ -66,6 +69,7 @@ export function CustomerCard({
           {/* 金额等次要信息收进分隔线下方，不抢视线 */}
           <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-t border-slate-100 pt-2.5">
             <span className="text-base font-extrabold tabular-nums text-rose-600">{money(customer.amount)}</span>
+            {addrCount > 1 && <Badge className="bg-violet-100 text-violet-700">共 {addrCount} 个地址</Badge>}
             {customer.pinned_next === 1 && <Badge className="bg-sky-100 text-sky-700">下一站</Badge>}
             {zoneName && <Badge variant="outline" className="border-slate-200 text-slate-50 bg-primary">{zoneName}</Badge>}
             {customer.geo_status === "approximate" && (
