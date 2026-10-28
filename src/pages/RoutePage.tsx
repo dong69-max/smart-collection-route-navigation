@@ -167,7 +167,7 @@ export default function RoutePage() {
 
       {zoneFilter === "custom" && (
         <div className="px-4 pt-4">
-          <Button variant="outline" className="h-12 w-full border-amber-400 text-base font-semibold text-amber-700" onClick={() => setPicking(true)}>
+          <Button variant="outline" className="h-12 w-full border-foreground text-base font-semibold text-amber-700 m-1" onClick={() => setPicking(true)}>
             ✋ 选择客户放进自定义路线（已选 {customIds.length}）
           </Button>
         </div>
