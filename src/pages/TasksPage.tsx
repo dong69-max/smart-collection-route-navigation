@@ -66,6 +66,14 @@ export default function TasksPage() {
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
     return active.filter((c) => {
+      const zn = (zones.find((z) => z._row_id === c.zone_id)?.name ?? "").toLowerCase();
+      const zt = term.replace(/区$/, "");
+      const zoneHit = !!zt && !!zn && (zn === zt || zn === term || zn.replace(/区$/, "") === zt);
+      const looksZone = zones.some((z) => {
+        const n = z.name.toLowerCase();
+        return !!zt && (n === term || n.replace(/区$/, "") === zt);
+      });
+      if (looksZone) return zoneHit && (filter === "all" ? true : filter === "done" ? c.status === "done" : c.status === (filter as TaskStatus)) && (zoneFilter === "all" || zoneFilter === "custom" || (zoneFilter === "none" ? c.zone_id == null : c.zone_id === zoneFilter));
       const matchQ =
         !term ||
         c.name.toLowerCase().includes(term) ||
@@ -84,7 +92,7 @@ export default function TasksPage() {
       if (filter === "done") return c.status === "done";
       return c.status === (filter as TaskStatus);
     });
-  }, [active, filter, q, zoneFilter]);
+  }, [active, filter, q, zoneFilter, zones]);
 
   const remove = async (id: number) => {
     try {
