@@ -271,6 +271,15 @@ export default function TasksPage() {
       </div>
 
       <div className="space-y-3 px-4 pb-8 pt-4">
+        {zoneFilter !== "all" && zoneFilter !== "custom" && (
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-indigo-900">
+            <div className="text-base font-extrabold">
+              {zoneFilter === "none" ? "未分区" : zones.find((z) => z._row_id === zoneFilter)?.name}区：共{" "}
+              {zoneFilter === "none" ? zoneCount("none") : zoneCount(zoneFilter as number)} 位客户
+            </div>
+            <div className="text-xs text-indigo-700">下面是该区客户的详细资料（当前筛选显示 {list.length} 位）</div>
+          </div>
+        )}
         {!selectMode && list.length === 0 && (
           <p className="rounded-2xl border border-slate-200/70 bg-white p-6 text-center text-sm text-slate-500">没有匹配的客户。</p>
         )}
