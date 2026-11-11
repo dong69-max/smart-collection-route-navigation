@@ -45,6 +45,7 @@ export default function RoutePage() {
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
   const [picking, setPicking] = useState(false);
 
+  const customCount = orderedOpen.filter((c) => customIds.includes(c._row_id)).length;
   const legById = new Map((plan?.legs ?? []).map((l) => [l.id, l]));
 
   // 选了区就只看/只规划这个区的客户（保持规划顺序）
@@ -127,14 +128,14 @@ export default function RoutePage() {
               全部地区-{customers.filter((c) => c.hidden !== 1).length}
             </button>
             <button
-              onClick={() => { setZoneFilter("custom"); if (customIds.length === 0) setPicking(true); }}
+              onClick={() => { setZoneFilter("custom"); if (customCount === 0) setPicking(true); }}
               className={`shrink-0 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors ${
                 zoneFilter === "custom"
                   ? "border-amber-300 bg-amber-500 text-white"
                   : "border-white/25 bg-white/10 text-slate-200 hover:bg-white/15"
               }`}
             >
-              ✋ 自定义-{customIds.length}
+              ✋ 自定义-{customCount}
             </button>
             {zones.map((z) => (
               <button
@@ -168,7 +169,7 @@ export default function RoutePage() {
       {zoneFilter === "custom" && (
         <div className="px-4 pt-4">
           <Button variant="outline" className="h-12 w-full border-foreground text-base font-semibold text-amber-700 m-1" onClick={() => setPicking(true)}>
-            ✋ 选择客户放进自定义路线（已选 {customIds.length}）
+            ✋ 选择客户放进自定义路线（已选 {customCount}）
           </Button>
         </div>
       )}
