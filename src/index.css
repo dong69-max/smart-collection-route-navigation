@@ -489,3 +489,32 @@
 }
 .tech-bg h1 { text-shadow: 0 0 14px rgba(34,211,238,0.6); letter-spacing: .02em; }
 .tech-bg .bg-sky-600, .tech-bg .bg-primary { box-shadow: 0 0 12px rgba(14,165,233,0.45); }
+
+/* ===== 科技感 v2 ===== */
+@keyframes tech-scan { 0%{background-position:0 0,0 0,0 0,0 -200px} 100%{background-position:0 0,0 0,0 0,0 100vh} }
+@keyframes tech-pulse { 0%,100%{box-shadow:0 0 8px rgba(34,211,238,.35)} 50%{box-shadow:0 0 22px rgba(34,211,238,.8)} }
+@keyframes tech-fade { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+.tech-bg {
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgba(34,211,238,0.28), transparent 55%),
+    linear-gradient(rgba(34,211,238,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,211,238,0.07) 1px, transparent 1px),
+    linear-gradient(180deg, transparent, rgba(34,211,238,0.08) 50%, transparent);
+  background-size: auto, 32px 32px, 32px 32px, 100% 200px;
+  background-repeat: no-repeat, repeat, repeat, no-repeat;
+  animation: tech-scan 6s linear infinite;
+}
+.tech-bg .bg-white.rounded-2xl, .tech-bg .rounded-2xl.bg-white {
+  background: rgba(255,255,255,0.93);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(34,211,238,0.55);
+  animation: tech-fade .4s ease both;
+  transition: transform .2s, box-shadow .2s;
+}
+.tech-bg .rounded-2xl.bg-white:hover { transform: translateY(-2px); box-shadow: 0 0 22px rgba(34,211,238,.45); }
+.tech-bg button.bg-sky-600, .tech-bg button.bg-primary {
+  background-image: linear-gradient(90deg,#0284c7,#06b6d4);
+  animation: tech-pulse 2.5s ease-in-out infinite;
+  border: 1px solid rgba(165,243,252,.6);
+}
+.tech-bg h1, .tech-bg h2 { background: linear-gradient(90deg,#fff,#67e8f9); -webkit-background-clip:text; background-clip:text; }
