@@ -467,3 +467,25 @@
     cursor: not-allowed;
   }
 }
+
+/* ===== 科技感主题 ===== */
+.tech-bg {
+  background-color: #060d1f;
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgba(34,211,238,0.22), transparent 55%),
+    linear-gradient(rgba(34,211,238,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,211,238,0.06) 1px, transparent 1px);
+  background-size: auto, 32px 32px, 32px 32px;
+  background-attachment: fixed;
+}
+.tech-bg .bg-slate-900:not(.rounded-lg):not(button) {
+  background-image: linear-gradient(135deg, #0b1b3d 0%, #0e3a5f 60%, #0b6a86 100%);
+  border-bottom: 1px solid rgba(34,211,238,0.5);
+  box-shadow: 0 6px 24px rgba(34,211,238,0.18);
+}
+.tech-bg .bg-white.rounded-2xl, .tech-bg .rounded-2xl.bg-white {
+  border-color: rgba(34,211,238,0.35);
+  box-shadow: 0 0 0 1px rgba(34,211,238,0.08), 0 4px 18px rgba(6,182,212,0.15);
+}
+.tech-bg h1 { text-shadow: 0 0 14px rgba(34,211,238,0.6); letter-spacing: .02em; }
+.tech-bg .bg-sky-600, .tech-bg .bg-primary { box-shadow: 0 0 12px rgba(14,165,233,0.45); }

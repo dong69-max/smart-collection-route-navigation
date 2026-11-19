@@ -12,9 +12,9 @@ const NAV = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen w-full bg-slate-100">
+    <div className="tech-bg min-h-screen w-full">
       <div className="mx-auto w-full max-w-md pb-28">{children}</div>
-      <nav className="fixed inset-x-0 bottom-0 z-[1000] border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-[1000] border-t border-cyan-400/30 bg-slate-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur">
         <div className="mx-auto flex w-full max-w-md">
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink
@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               className={({ isActive }) =>
                 cn(
                   "flex flex-1 flex-col items-center gap-0.5 pb-2.5 pt-2 text-[11px] transition-colors",
-                  isActive ? "font-semibold text-sky-600" : "font-medium text-slate-400",
+                  isActive ? "font-semibold text-cyan-300" : "font-medium text-slate-500",
                 )
               }
             >
@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <span
                     className={cn(
                       "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
-                      isActive && "bg-sky-50",
+                      isActive && "bg-cyan-400/15 shadow-[0_0_14px_rgba(34,211,238,0.45)]",
                     )}
                   >
                     <Icon className="h-[22px] w-[22px]" />
