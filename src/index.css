@@ -502,19 +502,14 @@
     linear-gradient(180deg, transparent, rgba(34,211,238,0.08) 50%, transparent);
   background-size: auto, 32px 32px, 32px 32px, 100% 200px;
   background-repeat: no-repeat, repeat, repeat, no-repeat;
-  animation: tech-scan 6s linear infinite;
 }
 .tech-bg .bg-white.rounded-2xl, .tech-bg .rounded-2xl.bg-white {
   background: rgba(255,255,255,0.93);
-  backdrop-filter: blur(8px);
   border: 1px solid rgba(34,211,238,0.55);
-  animation: tech-fade .4s ease both;
-  transition: transform .2s, box-shadow .2s;
+
 }
-.tech-bg .rounded-2xl.bg-white:hover { transform: translateY(-2px); box-shadow: 0 0 22px rgba(34,211,238,.45); }
 .tech-bg button.bg-sky-600, .tech-bg button.bg-primary {
   background-image: linear-gradient(90deg,#0284c7,#06b6d4);
-  animation: tech-pulse 2.5s ease-in-out infinite;
   border: 1px solid rgba(165,243,252,.6);
 }
 .tech-bg h1, .tech-bg h2 { background: linear-gradient(90deg,#fff,#67e8f9); -webkit-background-clip:text; background-clip:text; }
