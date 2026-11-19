@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { NavigationChooserDialog } from "./navigation";
-import { STATUS_LABELS, money, type Customer } from "@/lib/collection/types";
+import { STATUS_LABELS, money, summarizeVisits, timeWindowLabel, type Customer } from "@/lib/collection/types";
 import { useCollection } from "@/lib/collection/store";
 
 export function CustomerCard({
@@ -35,7 +35,10 @@ export function CustomerCard({
   onDelete?: (c: Customer) => void;
   onEdit?: (c: Customer) => void;
 }) {
-  const { customers: allCustomers } = useCollection();
+  const { customers: allCustomers, history } = useCollection();
+  const visits = summarizeVisits(history, customer._row_id);
+  const [visitOpen, setVisitOpen] = useState(false);
+  const tw = timeWindowLabel(customer);
   const addrCount = allCustomers.filter((x) => x.name.trim().toLowerCase() === customer.name.trim().toLowerCase()).length;
   const [navOpen, setNavOpen] = useState(false);
   const [addrOpen, setAddrOpen] = useState(false);
@@ -101,6 +104,25 @@ export function CustomerCard({
                   </li>
                 ))}
             </ol>
+          )}
+          {tw && <p className="mt-2 text-sm font-semibold text-sky-700">🕒 方便时段：{tw}</p>}
+          {visits.count > 0 && (
+            <div className="mt-2">
+              <button type="button" className="text-sm font-semibold text-indigo-700" onClick={() => setVisitOpen((v) => !v)}>
+                已上门 {visits.count} 次 · 累计收 {money(visits.totalCollected)} {visitOpen ? "▲" : "▼"}
+              </button>
+              {!visitOpen && visits.last && <span className="ml-2 text-xs text-slate-500">上次：{visits.last.result}</span>}
+              {visitOpen && (
+                <ul className="mt-1 space-y-1 rounded-lg bg-indigo-50 p-2 text-sm text-slate-700">
+                  {visits.rows.map((h) => (
+                    <li key={h._row_id}>
+                      {h.recorded_at ? new Date(h.recorded_at * 1000).toLocaleDateString() : ""} · {h.result}
+                      {Number(h.collected_amount ?? 0) > 0 ? ` · 收 ${money(h.collected_amount)}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
           {customer.notes && <p className="mt-2 line-clamp-2 text-base text-amber-500">备注：{customer.notes}</p>}
         </div>

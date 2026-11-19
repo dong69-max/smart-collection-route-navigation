@@ -52,6 +52,8 @@ export function CustomerFormDialog({
   const [amount, setAmount] = useState("");
   const [priority, setPriority] = useState("2");
   const [notes, setNotes] = useState("");
+  const [timeFrom, setTimeFrom] = useState("");
+  const [timeTo, setTimeTo] = useState("");
   const [manualLat, setManualLat] = useState("");
   const [manualLng, setManualLng] = useState("");
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -75,6 +77,8 @@ export function CustomerFormDialog({
       setAmount(String(editCustomer.amount ?? ""));
       setPriority(String(editCustomer.priority ?? 2));
       setNotes(editCustomer.notes ?? "");
+      setTimeFrom(editCustomer.time_from ?? "");
+      setTimeTo(editCustomer.time_to ?? "");
       if (editCustomer.lat != null && editCustomer.lng != null) {
         setManualLat(String(editCustomer.lat));
         setManualLng(String(editCustomer.lng));
@@ -89,6 +93,8 @@ export function CustomerFormDialog({
       setAmount("");
       setPriority("2");
       setNotes("");
+      setTimeFrom("");
+      setTimeTo("");
       setManualLat("");
       setManualLng("");
     }
@@ -170,6 +176,8 @@ export function CustomerFormDialog({
         lng,
         geo_status: geoStatus,
         notes: notes.trim() || null,
+        time_from: timeFrom || null,
+        time_to: timeTo || null,
         zone_id: zone?._row_id ?? null,
       };
 
@@ -267,6 +275,15 @@ export function CustomerFormDialog({
           <div>
             <Label htmlFor="cnotes">备注</Label>
             <Textarea id="cnotes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+
+          <div>
+            <Label>方便上门时段（选填）</Label>
+            <div className="flex items-center gap-2">
+              <Input type="time" value={timeFrom} onChange={(e) => setTimeFrom(e.target.value)} className="h-12" />
+              <span>–</span>
+              <Input type="time" value={timeTo} onChange={(e) => setTimeTo(e.target.value)} className="h-12" />
+            </div>
           </div>
 
           {/* 地图点选修正位置 */}

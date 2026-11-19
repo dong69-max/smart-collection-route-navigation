@@ -2,6 +2,7 @@ import { Home, Map, ListChecks, History } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useCollection } from "@/lib/collection/store";
 
 const NAV = [
   { to: "/", label: "首页", icon: Home },
@@ -11,8 +12,12 @@ const NAV = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { offline } = useCollection();
   return (
     <div className="tech-bg min-h-screen w-full">
+      {offline && (
+        <div className="bg-amber-500 px-3 py-1.5 text-center text-xs font-semibold text-slate-950">无网络：显示的是上次保存的名单，恢复网络后自动同步</div>
+      )}
       <div className="mx-auto w-full max-w-md pb-28">{children}</div>
       <nav className="fixed inset-x-0 bottom-0 z-[1000] border-t border-cyan-400/30 bg-slate-950/90 pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex w-full max-w-md">

@@ -34,6 +34,7 @@ import {
   type RoutePlan,
   type TodayZone,
   type Zone,
+  applyTimeWindows,
 } from "./types";
 
 export type ZoneFilter = "all" | "none" | "custom" | number;
@@ -43,6 +44,7 @@ interface Ctx {
   base: Base | null;
   reloadBase: () => Promise<void>;
   history: HistoryRow[];
+  offline: boolean;
   zones: Zone[];
   reloadZones: () => Promise<void>;
   zoneFilter: ZoneFilter;
@@ -89,6 +91,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [offline, setOffline] = useState(false);
   const [position, setPosition] = useState<Coords | null>(null);
   const [positionLabel, setPositionLabel] = useState("尚未获取位置");
   const [positionError, setPositionError] = useState<string | null>(null);
@@ -131,10 +134,20 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const [c, h] = await Promise.all([listCustomers(), listHistory()]);
+      try { localStorage.setItem("collection_cache", JSON.stringify({ c, h })); } catch { /* ignore */ }
+      setOffline(false);
       setCustomers(c);
       setHistory(h);
     } catch (e) {
-      toast.error(`读取数据失败：${errorText(e)}`);
+      setOffline(true);
+      try {
+        const raw = localStorage.getItem("collection_cache");
+        if (raw) {
+          const d = JSON.parse(raw) as { c: Customer[]; h: HistoryRow[] };
+          setCustomers((cur) => (cur.length ? cur : d.c));
+          setHistory((cur) => (cur.length ? cur : d.h));
+        } else toast.error(`读取数据失败：${errorText(e)}`);
+      } catch { /* ignore */ }
     } finally {
       setLoading(false);
     }
@@ -366,10 +379,11 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
         pinnedFirstId: pinned?._row_id,
         returnTo: base ? { lat: base.lat, lng: base.lng } : undefined,
       });
+      const ordered = applyTimeWindows(res.legs, stops, new Date().getHours() * 60 + new Date().getMinutes());
       const newPlan: RoutePlan = {
         provider: res.provider,
         mode,
-        legs: res.legs,
+        legs: ordered,
         total_distance_m: res.total_distance_m,
         total_duration_s: res.total_duration_s,
         return_leg: res.return_leg ?? null,
@@ -394,7 +408,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
         void saveSetting(SHARED_TZ_KEY, JSON.stringify(tz)).catch(() => {});
       }
       await Promise.all(
-        res.legs.map((leg, i) => updateCustomer(leg.id, { route_order: i + 1 })),
+        ordered.map((leg, i) => updateCustomer(leg.id, { route_order: i + 1 })),
       );
       await refresh();
       toast.success("路线已规划");
@@ -496,6 +510,7 @@ export function CollectionProvider({ children }: { children: ReactNode }) {
     base,
     reloadBase,
     history,
+    offline,
     zones,
     reloadZones,
     zoneFilter,

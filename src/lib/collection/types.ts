@@ -31,6 +31,8 @@ export interface Customer {
   collected_amount: number | null;
   archived: number;
   hidden: number;
+  time_from?: string | null;
+  time_to?: string | null;
 }
 
 export interface HistoryRow {
@@ -407,4 +409,82 @@ export function groupSameSpot(points: Customer[]): SpotGroup[] {
     else byKey.set(key, { lat, lng, items: [{ c, idx }] });
   });
   return [...byKey.values()];
+}
+
+// ---- 客户跟进记录 ----
+
+export interface VisitSummary {
+  count: number;
+  totalCollected: number;
+  last: HistoryRow | null;
+  rows: HistoryRow[];
+}
+
+export function summarizeVisits(history: HistoryRow[], customerId: number): VisitSummary {
+  const rows = history
+    .filter((h) => h.customer_id === customerId)
+    .sort((a, b) => (b.recorded_at ?? 0) - (a.recorded_at ?? 0));
+  return {
+    count: rows.length,
+    totalCollected: rows.reduce((a, h) => a + Number(h.collected_amount ?? 0), 0),
+    last: rows[0] ?? null,
+    rows,
+  };
+}
+
+// ---- 分区总览 ----
+
+export interface ZoneStat {
+  zoneId: number | "none";
+  name: string;
+  remaining: number;
+  owed: number;
+}
+
+export function zoneOverview(customers: Customer[], zones: Zone[]): ZoneStat[] {
+  const open = customers.filter(isShown);
+  const stat = (zoneId: number | "none", name: string): ZoneStat => {
+    const list = open.filter((c) => (zoneId === "none" ? c.zone_id == null : c.zone_id === zoneId));
+    return { zoneId, name, remaining: list.length, owed: list.reduce((a, c) => a + Number(c.amount ?? 0), 0) };
+  };
+  const out = zones.map((z) => stat(z._row_id, z.name));
+  const none = stat("none", "未分区");
+  if (none.remaining > 0) out.push(none);
+  return out;
+}
+
+// ---- 时间窗口 ----
+
+function toMin(t: string | null | undefined): number | null {
+  if (!t) return null;
+  const m = /^(\d{1,2}):(\d{2})/.exec(t);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+export function timeWindowLabel(c: Pick<Customer, "time_from" | "time_to">): string | null {
+  if (!c.time_from && !c.time_to) return null;
+  return `${c.time_from || "不限"} – ${c.time_to || "不限"}`;
+}
+
+// 按时间窗口调整已优化的顺序：现在能去的（无限制/窗口已开）保持原顺序在前，
+// 还没到时间的按开始时间排在中间，已过时间的排最后。
+export function applyTimeWindows<T extends { id: number }>(
+  legs: T[],
+  customers: Array<Pick<Customer, "_row_id" | "time_from" | "time_to">>,
+  nowMin: number,
+): T[] {
+  const byId = new Map(customers.map((c) => [c._row_id, c]));
+  const now: T[] = [];
+  const later: Array<{ l: T; from: number }> = [];
+  const expired: T[] = [];
+  for (const l of legs) {
+    const c = byId.get(l.id);
+    const from = toMin(c?.time_from);
+    const to = toMin(c?.time_to);
+    if (to != null && nowMin > to) expired.push(l);
+    else if (from != null && nowMin < from) later.push({ l, from });
+    else now.push(l);
+  }
+  later.sort((a, b) => a.from - b.from);
+  return [...now, ...later.map((x) => x.l), ...expired];
 }

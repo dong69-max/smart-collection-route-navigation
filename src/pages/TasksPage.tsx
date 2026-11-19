@@ -46,6 +46,7 @@ export default function TasksPage() {
   const [complete, setComplete] = useState<Customer | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
+  const [shown, setShown] = useState(30);
   const [importOpen, setImportOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   // 多选批量删除
@@ -282,7 +283,7 @@ export default function TasksPage() {
         {!selectMode && list.length === 0 && (
           <p className="rounded-2xl border border-slate-200/70 bg-white p-6 text-center text-sm text-slate-500">没有匹配的客户。</p>
         )}
-        {list.map((c) =>
+        {list.slice(0, selectMode ? list.length : shown).map((c) =>
           selectMode ? (
             <div
               key={c._row_id}
@@ -323,6 +324,12 @@ export default function TasksPage() {
               onDelete={(x) => void remove(x._row_id)}
             />
           ),
+        )}
+
+        {!selectMode && list.length > shown && (
+          <Button variant="outline" className="h-12 w-full" onClick={() => setShown((n) => n + 30)}>
+            再显示 30 位（还有 {list.length - shown} 位）
+          </Button>
         )}
 
         {hiddenCustomers.length > 0 && (

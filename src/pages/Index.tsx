@@ -23,7 +23,7 @@ import { ZoneDialog } from "@/components/collection/ZoneDialog";
 import { LetterScanDialog } from "@/components/collection/LetterScanDialog";
 import { useCollection } from "@/lib/collection/store";
 import { toast } from "sonner";
-import { isOpen, km, mins, money, type Customer } from "@/lib/collection/types";
+import { isOpen, km, mins, money, zoneOverview, type Customer } from "@/lib/collection/types";
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
@@ -48,6 +48,8 @@ export default function Index() {
     planRoute,
     nearby,
     todayZone,
+    zones,
+    setZoneFilter,
     orderedOpen,
     base,
     reloadBase,
@@ -63,6 +65,8 @@ export default function Index() {
   const [navBaseOpen, setNavBaseOpen] = useState(false);
   const [zoneOpen, setZoneOpen] = useState(false);
   const [endDayOpen, setEndDayOpen] = useState(false);
+  const [fixCustomer, setFixCustomer] = useState<Customer | null>(null);
+  const [fixOpen, setFixOpen] = useState(false);
   const [manual, setManual] = useState("");
 
   // 隐藏的客户不进首页统计；定了今日目标区后只看这个区
@@ -240,6 +244,42 @@ export default function Index() {
           </Button>
         </div>
 
+        <section className="rounded-2xl border border-slate-300 bg-white p-4">
+          <p className="text-sm font-bold text-slate-800">📊 分区总览（还剩多少家 / 欠款合计）</p>
+          <ul className="mt-2 divide-y divide-slate-100">
+            {zoneOverview(customers, zones).map((s) => (
+              <li key={String(s.zoneId)}>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between py-2.5 text-left"
+                  onClick={() => { setZoneFilter(s.zoneId); navigate("/tasks"); }}
+                >
+                  <span className="font-semibold text-slate-900">{s.name}</span>
+                  <span className="text-sm text-slate-600">{s.remaining} 家 · <b className="text-rose-600">{money(s.owed)}</b></span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {(() => {
+          const fix = customers.filter((c) => c.hidden !== 1 && c.archived !== 1 && (c.geo_status === "manual" || c.geo_status === "approximate" || c.lat == null));
+          if (fix.length === 0) return null;
+          return (
+            <section className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
+              <p className="text-sm font-bold text-amber-900">📍 待校正（{fix.length}）：位置不准或手动定位的客户</p>
+              <ul className="mt-2 space-y-1">
+                {fix.map((c) => (
+                  <li key={c._row_id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="min-w-0 truncate">{c.name} <span className="text-xs text-amber-700">{c.lat == null ? "未定位" : c.geo_status === "manual" ? "手动" : "大概"}</span></span>
+                    <Button size="sm" variant="outline" className="h-8 shrink-0" onClick={() => { setFixCustomer(c); setFixOpen(true); }}>校正</Button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })()}
+
         {nearby.length > 0 && (
           <section className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
             <p className="text-sm font-semibold text-sky-900">附近还有 {nearby.length} 个任务</p>
@@ -343,6 +383,7 @@ export default function Index() {
         onOpenChange={setNavBaseOpen}
       />
       <ZoneDialog open={zoneOpen} onOpenChange={setZoneOpen} />
+      <CustomerFormDialog open={fixOpen} onOpenChange={setFixOpen} editCustomer={fixCustomer} />
       <AlertDialog open={endDayOpen} onOpenChange={setEndDayOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

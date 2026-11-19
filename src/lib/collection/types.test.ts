@@ -453,3 +453,22 @@ describe("分享文字（交差摘要）", () => {
     expect(noCode).not.toContain("编号");
   });
 });
+
+import { applyTimeWindows as _atw, summarizeVisits as _sv } from "./types";
+describe("time windows & visits", () => {
+  it("orders by window", () => {
+    const legs = [{ id: 1 }, { id: 2 }, { id: 3 }];
+    const cs = [
+      { _row_id: 1, time_from: "15:00", time_to: null },
+      { _row_id: 2, time_from: null, time_to: "09:00" },
+      { _row_id: 3, time_from: null, time_to: null },
+    ];
+    expect(_atw(legs, cs, 10 * 60).map((l) => l.id)).toEqual([3, 1, 2]);
+  });
+  it("sums visits", () => {
+    const s = _sv([{ _row_id: 1, customer_id: 5, collected_amount: 10, recorded_at: 1 } as never, { _row_id: 2, customer_id: 5, collected_amount: 20, recorded_at: 2 } as never], 5);
+    expect(s.count).toBe(2);
+    expect(s.totalCollected).toBe(30);
+    expect(s.last?._row_id).toBe(2);
+  });
+});
