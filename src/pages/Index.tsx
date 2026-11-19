@@ -259,8 +259,8 @@ export default function Index() {
 
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900">下一站</h2>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/route")}>
+            <h2 className="text-base font-bold text-cyan-200">下一站</h2>
+            <Button variant="ghost" size="sm" className="text-cyan-300 hover:bg-cyan-400/10 hover:text-cyan-200" onClick={() => navigate("/route")}>
               查看完整路线
             </Button>
           </div>
